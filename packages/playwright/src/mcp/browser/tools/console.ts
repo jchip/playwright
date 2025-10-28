@@ -27,15 +27,41 @@ const console = defineTabTool({
   schema: {
     name: 'browser_console_messages',
     title: 'Get console messages',
-    description: 'Returns all console messages. When filename is provided, saves to a file instead of returning inline (recommended for large logs).',
+    description: 'Returns all console messages with optional filtering and summary. When filename is provided, saves to a file instead of returning inline (recommended for large logs).',
     inputSchema: z.object({
-      onlyErrors: z.boolean().optional().describe('Only return error messages'),
+      onlyErrors: z.boolean().optional().describe('Only return error messages (deprecated: use messageTypes instead)'),
+      messageTypes: z.array(z.enum(['error', 'warning', 'log', 'info'])).optional().describe('Filter by message types. If not specified, returns all message types.'),
       filename: z.string().optional().describe('File name to save the console messages to. Defaults to `console-{timestamp}.txt` if set to empty string. Prefer relative file names to stay within the output directory. When specified, console messages are saved to file instead of returned inline.'),
     }),
     type: 'readOnly',
   },
   handle: async (tab, params, response) => {
-    const messages = await tab.consoleMessages(params.onlyErrors ? 'error' : undefined);
+    // Determine which types to filter by
+    let types: ('error' | 'warning' | 'log' | 'info')[] | undefined;
+    if (params.messageTypes && params.messageTypes.length > 0) {
+      types = params.messageTypes;
+    } else if (params.onlyErrors) {
+      // Support legacy onlyErrors parameter
+      types = ['error'];
+    }
+
+    const messages = await tab.consoleMessages(types);
+    const allMessages = await tab.consoleMessages();
+
+    // Generate summary
+    const summary = {
+      total: allMessages.length,
+      errors: allMessages.filter(m => m.type === 'error').length,
+      warnings: allMessages.filter(m => m.type === 'warning').length,
+      logs: allMessages.filter(m => m.type === 'log').length,
+      info: allMessages.filter(m => m.type === 'info').length,
+    };
+
+    const summaryText = `Console Summary: ${summary.total} messages (${summary.errors} errors, ${summary.warnings} warnings, ${summary.logs} logs, ${summary.info} info)`;
+
+    // Find first error and warning for quick reference
+    const firstError = allMessages.find(m => m.type === 'error');
+    const firstWarning = allMessages.find(m => m.type === 'warning');
 
     if (params.filename !== undefined) {
       // Save to file
@@ -45,10 +71,21 @@ const console = defineTabTool({
       await mkdirIfNeeded(fileName);
       await fs.promises.writeFile(fileName, content, 'utf-8');
 
-      const messageType = params.onlyErrors ? 'error messages' : 'console messages';
-      response.addResult(`Saved ${messages.length} ${messageType} to ${fileName}`);
+      const filterDesc = types ? `(filtered to: ${types.join(', ')})` : '';
+      response.addResult(summaryText);
+      if (firstError)
+        response.addResult(`First error: ${firstError.toString()}`);
+      if (firstWarning)
+        response.addResult(`First warning: ${firstWarning.toString()}`);
+      response.addResult(`\nSaved ${messages.length} console messages ${filterDesc} to ${fileName}`);
     } else {
       // Return inline (original behavior)
+      response.addResult(summaryText);
+      if (firstError)
+        response.addResult(`First error: ${firstError.toString()}`);
+      if (firstWarning)
+        response.addResult(`First warning: ${firstWarning.toString()}`);
+      response.addResult(''); // Empty line separator
       messages.map(message => response.addResult(message.toString()));
     }
   },

@@ -207,9 +207,11 @@ export class Tab extends EventEmitter<TabEventsInterface> {
     await this.waitForLoadState('load', { timeout: 5000 });
   }
 
-  async consoleMessages(type?: 'error'): Promise<ConsoleMessage[]> {
+  async consoleMessages(types?: ('error' | 'warning' | 'log' | 'info')[]): Promise<ConsoleMessage[]> {
     await this._initializedPromise;
-    return this._consoleMessages.filter(message => type ? message.type === type : true);
+    if (!types || types.length === 0)
+      return this._consoleMessages;
+    return this._consoleMessages.filter(message => message.type && types.includes(message.type as any));
   }
 
   async requests(): Promise<Set<playwright.Request>> {
