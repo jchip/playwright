@@ -34,13 +34,12 @@ test('browser_console_messages', async ({ client, server }) => {
     },
   });
 
-  const resource = await client.callTool({
+  const resource = parseResponse(await client.callTool({
     name: 'browser_console_messages',
-  });
-  expect(resource).toHaveResponse({
-    result: `[LOG] Hello, world! @ ${server.PREFIX}/:4
-[ERROR] Error @ ${server.PREFIX}/:5`,
-  });
+  }));
+  expect(resource.result).toContain('Console Summary: 2 messages (1 errors, 0 warnings');
+  expect(resource.result).toContain('[LOG] Hello, world!');
+  expect(resource.result).toContain('[ERROR] Error');
 });
 
 test('browser_console_messages (page error)', async ({ client, server }) => {
@@ -126,11 +125,15 @@ test('browser_console_messages errors only', async ({ client, server }) => {
       onlyErrors: true,
     },
   }));
+  expect.soft(response.result).toContain('Console Summary');
   expect.soft(response.result).toContain('console.error');
   expect.soft(response.result).toContain('Error: unhandled');
   expect.soft(response.result).toContain('404');
-  expect.soft(response.result).not.toContain('console.log');
-  expect.soft(response.result).not.toContain('console.warn');
+  // The summary line will mention "First warning:" but the actual warning message list should not contain console.log
+  // Check that the filtered message section doesn't contain non-errors
+  const lines = response.result.split('\n');
+  const messageLines = lines.filter(line => line.startsWith('['));
+  expect.soft(messageLines.some(line => line.includes('console.log'))).toBe(false);
 });
 
 test('browser_console_messages save to file', async ({ startClient, server }, testInfo) => {
@@ -164,7 +167,8 @@ test('browser_console_messages save to file', async ({ startClient, server }, te
     },
   }));
 
-  expect(response.result).toContain('Saved 3 console messages to');
+  expect(response.result).toContain('Console Summary: 3 messages');
+  expect(response.result).toContain('Saved 3 console messages');
   expect(response.result).toContain('test-console.txt');
 
   // Verify the file was created and contains the console messages
@@ -211,7 +215,8 @@ test('browser_console_messages save errors only to file', async ({ startClient, 
     },
   }));
 
-  expect(response.result).toContain('Saved 1 error messages to');
+  expect(response.result).toContain('Console Summary: 3 messages');
+  expect(response.result).toContain('Saved 1 console messages');
   expect(response.result).toContain('test-errors.txt');
 
   // Verify the file was created and contains only errors
@@ -224,4 +229,117 @@ test('browser_console_messages save errors only to file', async ({ startClient, 
   expect(content).toContain('Error message');
   expect(content).not.toContain('Hello, world!');
   expect(content).not.toContain('Warning message');
+});
+
+test('browser_console_messages with messageTypes filter', async ({ client, server }) => {
+  server.setContent('/', `
+    <!DOCTYPE html>
+    <html>
+      <script>
+        console.log("Log message");
+        console.error("Error message");
+        console.warn("Warning message");
+        console.info("Info message");
+      </script>
+    </html>
+  `, 'text/html');
+
+  await client.callTool({
+    name: 'browser_navigate',
+    arguments: {
+      url: server.PREFIX,
+    },
+  });
+
+  const response = parseResponse(await client.callTool({
+    name: 'browser_console_messages',
+    arguments: {
+      messageTypes: ['error', 'warning'],
+    },
+  }));
+
+  expect(response.result).toContain('Console Summary: 4 messages');
+  expect(response.result).toContain('[ERROR] Error message');
+  expect(response.result).toContain('[WARNING] Warning message');
+  expect(response.result).not.toContain('[LOG] Log message');
+  expect(response.result).not.toContain('[INFO] Info message');
+});
+
+test('browser_console_messages summary with first error and warning', async ({ client, server }) => {
+  server.setContent('/', `
+    <!DOCTYPE html>
+    <html>
+      <script>
+        console.log("Log message 1");
+        console.warn("First warning");
+        console.log("Log message 2");
+        console.error("First error");
+        console.warn("Second warning");
+      </script>
+    </html>
+  `, 'text/html');
+
+  await client.callTool({
+    name: 'browser_navigate',
+    arguments: {
+      url: server.PREFIX,
+    },
+  });
+
+  const response = parseResponse(await client.callTool({
+    name: 'browser_console_messages',
+  }));
+
+  expect(response.result).toContain('Console Summary: 5 messages (1 errors, 2 warnings');
+  expect(response.result).toContain('First error: [ERROR] First error');
+  expect(response.result).toContain('First warning: [WARNING] First warning');
+});
+
+test('browser_console_messages save with messageTypes filter', async ({ startClient, server }, testInfo) => {
+  const outputDir = testInfo.outputPath('output');
+  const { client } = await startClient({
+    config: { outputDir },
+  });
+
+  server.setContent('/', `
+    <!DOCTYPE html>
+    <html>
+      <script>
+        console.log("Log message");
+        console.error("Error message");
+        console.warn("Warning message");
+      </script>
+    </html>
+  `, 'text/html');
+
+  await client.callTool({
+    name: 'browser_navigate',
+    arguments: {
+      url: server.PREFIX,
+    },
+  });
+
+  const response = parseResponse(await client.callTool({
+    name: 'browser_console_messages',
+    arguments: {
+      filename: 'test-warnings.txt',
+      messageTypes: ['warning'],
+    },
+  }));
+
+  expect(response.result).toContain('Console Summary: 3 messages');
+  expect(response.result).toContain('Saved 1 console messages');
+  expect(response.result).toContain('(filtered to: warning)');
+  expect(response.result).toContain('test-warnings.txt');
+
+  // Verify the file was created and contains only warnings
+  const fs = await import('fs');
+  const path = await import('path');
+  const warningsFile = path.join(outputDir, 'test-warnings.txt');
+  expect(fs.existsSync(warningsFile)).toBeTruthy();
+
+  const content = fs.readFileSync(warningsFile, 'utf-8');
+  expect(content).toContain('Warning message');
+  expect(content).not.toContain('Log message');
+  expect(content).not.toContain('Error message');
 });
