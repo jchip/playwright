@@ -14,7 +14,10 @@
  * limitations under the License.
  */
 
-import { test, expect } from './fixtures';
+import fs from 'fs';
+import path from 'path';
+
+import { test, expect, parseResponse } from './fixtures';
 
 test('browser_evaluate', async ({ client, server }) => {
   expect(await client.callTool({
@@ -96,4 +99,47 @@ test('browser_evaluate (error)', async ({ client, server }) => {
   // Check for common error patterns across browsers
   const errorText = result.content?.[0]?.text || '';
   expect(errorText).toMatch(/not defined|Can't find variable/);
+});
+
+test('browser_evaluate save to file', async ({ startClient, server }, testInfo) => {
+  const outputDir = testInfo.outputPath('output');
+  const { client } = await startClient({
+    config: { outputDir },
+  });
+
+  await client.callTool({
+    name: 'browser_navigate',
+    arguments: { url: server.HELLO_WORLD },
+  });
+
+  // Evaluate a large object that would benefit from file storage
+  const response = parseResponse(await client.callTool({
+    name: 'browser_evaluate',
+    arguments: {
+      function: `() => ({
+        title: document.title,
+        url: document.URL,
+        cookies: document.cookie,
+        userAgent: navigator.userAgent,
+        viewport: { width: window.innerWidth, height: window.innerHeight },
+        performance: { timing: performance.timing }
+      })`,
+      filename: 'test-evaluate.json',
+    },
+  }));
+
+  expect(response.result).toContain('Evaluation result saved to');
+  expect(response.result).toContain('test-evaluate.json');
+
+  // Verify the file was created and contains valid JSON
+  const evaluateFile = path.join(outputDir, 'test-evaluate.json');
+  expect(fs.existsSync(evaluateFile)).toBeTruthy();
+
+  const content = fs.readFileSync(evaluateFile, 'utf-8');
+  const parsed = JSON.parse(content);
+
+  expect(parsed).toHaveProperty('title', 'Title');
+  expect(parsed).toHaveProperty('url', server.HELLO_WORLD);
+  expect(parsed).toHaveProperty('userAgent');
+  expect(parsed).toHaveProperty('viewport');
 });

@@ -14,9 +14,14 @@
  * limitations under the License.
  */
 
+import fs from 'fs';
+
+import { mkdirIfNeeded } from 'playwright-core/lib/utils';
+
 import { z } from '../../sdk/bundle';
 import { defineTabTool } from './tool';
 import * as javascript from '../codegen';
+import { dateAsFileName } from './utils';
 
 import type { Tab } from '../tab';
 
@@ -24,6 +29,7 @@ const evaluateSchema = z.object({
   function: z.string().describe('() => { /* code */ } or (element) => { /* code */ } when element is provided'),
   element: z.string().optional().describe('Human-readable element description used to obtain permission to interact with the element'),
   ref: z.string().optional().describe('Exact target element reference from the page snapshot'),
+  filename: z.string().optional().describe('File name to save the evaluation result to. Defaults to `evaluate-{timestamp}.json` if set to empty string. Prefer relative file names to stay within the output directory. When specified, the result is saved to file instead of returned inline (useful for large results like dumping state objects).'),
 });
 
 const evaluate = defineTabTool({
@@ -50,7 +56,20 @@ const evaluate = defineTabTool({
     await tab.waitForCompletion(async () => {
       const receiver = locator?.locator ?? tab.page;
       const result = await receiver._evaluateFunction(params.function);
-      response.addResult(JSON.stringify(result, null, 2) || 'undefined');
+      const resultString = JSON.stringify(result, null, 2) || 'undefined';
+
+      if (params.filename !== undefined) {
+        // Save to file
+        const fileName = await tab.context.outputFile(params.filename || dateAsFileName('json', 'evaluate'), { origin: 'llm', reason: 'Saving evaluation result' });
+
+        await mkdirIfNeeded(fileName);
+        await fs.promises.writeFile(fileName, resultString, 'utf-8');
+
+        response.addResult(`Evaluation result saved to ${fileName}`);
+      } else {
+        // Return inline (original behavior)
+        response.addResult(resultString);
+      }
     });
   },
 });
