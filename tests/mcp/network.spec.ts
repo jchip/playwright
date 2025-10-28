@@ -14,7 +14,10 @@
  * limitations under the License.
  */
 
-import { test, expect } from './fixtures';
+import fs from 'fs';
+import path from 'path';
+
+import { test, expect, parseResponse } from './fixtures';
 
 test('browser_network_requests', async ({ client, server }) => {
   server.setContent('/', `
@@ -44,4 +47,65 @@ test('browser_network_requests', async ({ client, server }) => {
     result: expect.stringContaining(`[GET] ${`${server.PREFIX}/`} => [200] OK
 [GET] ${`${server.PREFIX}/json`} => [200] OK`),
   });
+});
+
+test('browser_network_requests save to file', async ({ startClient, server }, testInfo) => {
+  const outputDir = testInfo.outputPath('output');
+  const { client } = await startClient({
+    config: { outputDir },
+  });
+
+  server.setContent('/', `
+    <button onclick="fetch('/json')">Click me</button>
+    <button onclick="fetch('/api')">Click me too</button>
+  `, 'text/html');
+
+  server.setContent('/json', JSON.stringify({ name: 'John Doe' }), 'application/json');
+  server.setContent('/api', JSON.stringify({ status: 'ok' }), 'application/json');
+
+  await client.callTool({
+    name: 'browser_navigate',
+    arguments: {
+      url: server.PREFIX,
+    },
+  });
+
+  await client.callTool({
+    name: 'browser_click',
+    arguments: {
+      element: 'Click me button',
+      ref: 'e2',
+    },
+  });
+
+  await client.callTool({
+    name: 'browser_click',
+    arguments: {
+      element: 'Click me too button',
+      ref: 'e3',
+    },
+  });
+
+  // Wait for all requests to be processed
+  await new Promise(resolve => setTimeout(resolve, 100));
+
+  const response = parseResponse(await client.callTool({
+    name: 'browser_network_requests',
+    arguments: {
+      filename: 'test-network.txt',
+    },
+  }));
+
+  expect(response.result).toContain('Saved 3 network requests to');
+  expect(response.result).toContain('test-network.txt');
+
+  // Verify the file was created and contains the network requests
+  const networkFile = path.join(outputDir, 'test-network.txt');
+  expect(fs.existsSync(networkFile)).toBeTruthy();
+
+  const content = fs.readFileSync(networkFile, 'utf-8');
+  expect(content).toContain(`[GET] ${server.PREFIX}/`);
+  expect(content).toContain(`[GET] ${server.PREFIX}/json`);
+  expect(content).toContain(`[GET] ${server.PREFIX}/api`);
+  expect(content).toContain('=> [200] OK');
 });

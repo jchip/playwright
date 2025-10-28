@@ -14,8 +14,13 @@
  * limitations under the License.
  */
 
+import fs from 'fs';
+
+import { mkdirIfNeeded } from 'playwright-core/lib/utils';
+
 import { z } from '../../sdk/bundle';
 import { defineTabTool } from './tool';
+import { dateAsFileName } from './utils';
 
 import type * as playwright from 'playwright-core';
 import type { Request } from '../../../../../playwright-core/src/client/network';
@@ -26,15 +31,35 @@ const requests = defineTabTool({
   schema: {
     name: 'browser_network_requests',
     title: 'List network requests',
-    description: 'Returns all network requests since loading the page',
-    inputSchema: z.object({}),
+    description: 'Returns all network requests since loading the page. When filename is provided, saves to a file instead of returning inline (recommended for large request lists).',
+    inputSchema: z.object({
+      filename: z.string().optional().describe('File name to save the network requests to. Defaults to `network-{timestamp}.txt` if set to empty string. Prefer relative file names to stay within the output directory. When specified, network requests are saved to file instead of returned inline.'),
+    }),
     type: 'readOnly',
   },
 
   handle: async (tab, params, response) => {
-    const requests = await tab.requests();
-    for (const request of requests)
-      response.addResult(await renderRequest(request));
+    const requestList = await tab.requests();
+
+    if (params.filename !== undefined) {
+      // Save to file
+      const fileName = await tab.context.outputFile(params.filename || dateAsFileName('txt', 'network'), { origin: 'llm', reason: 'Saving network requests' });
+      const lines: string[] = [];
+
+      for (const request of requestList)
+        lines.push(await renderRequest(request));
+
+      const content = lines.join('\n');
+
+      await mkdirIfNeeded(fileName);
+      await fs.promises.writeFile(fileName, content, 'utf-8');
+
+      response.addResult(`Saved ${requestList.size} network requests to ${fileName}`);
+    } else {
+      // Return inline (original behavior)
+      for (const request of requestList)
+        response.addResult(await renderRequest(request));
+    }
   },
 });
 
