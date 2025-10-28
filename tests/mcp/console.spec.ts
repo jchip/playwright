@@ -132,3 +132,96 @@ test('browser_console_messages errors only', async ({ client, server }) => {
   expect.soft(response.result).not.toContain('console.log');
   expect.soft(response.result).not.toContain('console.warn');
 });
+
+test('browser_console_messages save to file', async ({ startClient, server }, testInfo) => {
+  const outputDir = testInfo.outputPath('output');
+  const { client } = await startClient({
+    config: { outputDir },
+  });
+
+  server.setContent('/', `
+    <!DOCTYPE html>
+    <html>
+      <script>
+        console.log("Hello, world!");
+        console.error("Error message");
+        console.warn("Warning message");
+      </script>
+    </html>
+  `, 'text/html');
+
+  await client.callTool({
+    name: 'browser_navigate',
+    arguments: {
+      url: server.PREFIX,
+    },
+  });
+
+  const response = parseResponse(await client.callTool({
+    name: 'browser_console_messages',
+    arguments: {
+      filename: 'test-console.txt',
+    },
+  }));
+
+  expect(response.result).toContain('Saved 3 console messages to');
+  expect(response.result).toContain('test-console.txt');
+
+  // Verify the file was created and contains the console messages
+  const fs = await import('fs');
+  const path = await import('path');
+  const consoleFile = path.join(outputDir, 'test-console.txt');
+  expect(fs.existsSync(consoleFile)).toBeTruthy();
+
+  const content = fs.readFileSync(consoleFile, 'utf-8');
+  expect(content).toContain('Hello, world!');
+  expect(content).toContain('Error message');
+  expect(content).toContain('Warning message');
+});
+
+test('browser_console_messages save errors only to file', async ({ startClient, server }, testInfo) => {
+  const outputDir = testInfo.outputPath('output');
+  const { client } = await startClient({
+    config: { outputDir },
+  });
+
+  server.setContent('/', `
+    <!DOCTYPE html>
+    <html>
+      <script>
+        console.log("Hello, world!");
+        console.error("Error message");
+        console.warn("Warning message");
+      </script>
+    </html>
+  `, 'text/html');
+
+  await client.callTool({
+    name: 'browser_navigate',
+    arguments: {
+      url: server.PREFIX,
+    },
+  });
+
+  const response = parseResponse(await client.callTool({
+    name: 'browser_console_messages',
+    arguments: {
+      filename: 'test-errors.txt',
+      onlyErrors: true,
+    },
+  }));
+
+  expect(response.result).toContain('Saved 1 error messages to');
+  expect(response.result).toContain('test-errors.txt');
+
+  // Verify the file was created and contains only errors
+  const fs = await import('fs');
+  const path = await import('path');
+  const errorsFile = path.join(outputDir, 'test-errors.txt');
+  expect(fs.existsSync(errorsFile)).toBeTruthy();
+
+  const content = fs.readFileSync(errorsFile, 'utf-8');
+  expect(content).toContain('Error message');
+  expect(content).not.toContain('Hello, world!');
+  expect(content).not.toContain('Warning message');
+});

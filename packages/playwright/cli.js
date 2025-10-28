@@ -15,5 +15,6 @@
  * limitations under the License.
  */
 
+console.log("playwright");
 const { program } = require('./lib/program');
 program.parse(process.argv);
