@@ -34,6 +34,8 @@ const requests = defineTabTool({
     description: 'Returns all network requests since loading the page. When filename is provided, saves to a file instead of returning inline (recommended for large request lists).',
     inputSchema: z.object({
       filename: z.string().optional().describe('File name to save the network requests to. Defaults to `network-{timestamp}.txt` if set to empty string. Prefer relative file names to stay within the output directory. When specified, network requests are saved to file instead of returned inline.'),
+      onlyFailed: z.boolean().optional().describe('When true, only include failed requests (4xx and 5xx status codes). Defaults to false.'),
+      slowRequestsThreshold: z.number().optional().describe('When specified, only include requests slower than this threshold in milliseconds. For example, 1000 will only show requests that took longer than 1 second.'),
     }),
     type: 'readOnly',
   },
@@ -41,12 +43,69 @@ const requests = defineTabTool({
   handle: async (tab, params, response) => {
     const requestList = await tab.requests();
 
+    // Apply filters
+    let filteredRequests: playwright.Request[] = Array.from(requestList);
+    let totalRequests = filteredRequests.length;
+    let failedCount = 0;
+    let totalDuration = 0;
+    let requestCount = 0;
+
+    // Calculate statistics for all requests first
+    for (const request of filteredRequests) {
+      const hasResponse = (request as Request)._hasResponse;
+      if (hasResponse) {
+        const resp = await request.response();
+        if (resp && resp.status() >= 400)
+          failedCount++;
+      }
+
+      const timing = request.timing();
+      if (timing.responseStart >= 0 && timing.requestStart >= 0) {
+        totalDuration += timing.responseStart - timing.requestStart;
+        requestCount++;
+      }
+    }
+
+    // Filter by failed requests
+    if (params.onlyFailed) {
+      filteredRequests = [];
+      for (const request of requestList) {
+        const hasResponse = (request as Request)._hasResponse;
+        if (hasResponse) {
+          const resp = await request.response();
+          if (resp && resp.status() >= 400)
+            filteredRequests.push(request);
+        }
+      }
+    }
+
+    // Filter by slow requests
+    if (params.slowRequestsThreshold !== undefined) {
+      const threshold = params.slowRequestsThreshold;
+      filteredRequests = filteredRequests.filter(request => {
+        const timing = request.timing();
+        if (timing.responseStart >= 0 && timing.requestStart >= 0) {
+          const duration = timing.responseStart - timing.requestStart;
+          return duration >= threshold;
+        }
+        return false;
+      });
+    }
+
+    // Generate summary
+    const avgDuration = requestCount > 0 ? Math.round(totalDuration / requestCount) : 0;
+    const summary = `Network Summary: ${totalRequests} requests, ${failedCount} failed, average ${avgDuration}ms`;
+
     if (params.filename !== undefined) {
       // Save to file
       const fileName = await tab.context.outputFile(params.filename || dateAsFileName('txt', 'network'), { origin: 'llm', reason: 'Saving network requests' });
       const lines: string[] = [];
 
-      for (const request of requestList)
+      // Add summary at the top
+      lines.push(summary);
+      lines.push('');
+
+      for (const request of filteredRequests)
         lines.push(await renderRequest(request));
 
       const content = lines.join('\n');
@@ -54,10 +113,11 @@ const requests = defineTabTool({
       await mkdirIfNeeded(fileName);
       await fs.promises.writeFile(fileName, content, 'utf-8');
 
-      response.addResult(`Saved ${requestList.size} network requests to ${fileName}`);
+      response.addResult(`${summary}\nSaved ${filteredRequests.length} network requests to ${fileName}`);
     } else {
       // Return inline (original behavior)
-      for (const request of requestList)
+      response.addResult(summary);
+      for (const request of filteredRequests)
         response.addResult(await renderRequest(request));
     }
   },
