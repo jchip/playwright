@@ -76,7 +76,7 @@ export async function callOnPageNoTrace<T>(page: playwright.Page, callback: (pag
   return await (page as any)._wrapApiCall(() => callback(page), { internal: true });
 }
 
-export function dateAsFileName(extension: string): string {
+export function dateAsFileName(extension: string, prefix: string = 'page'): string {
   const date = new Date();
-  return `page-${date.toISOString().replace(/[:.]/g, '-')}.${extension}`;
+  return `${prefix}-${date.toISOString().replace(/[:.]/g, '-')}.${extension}`;
 }

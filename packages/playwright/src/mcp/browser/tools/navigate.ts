@@ -16,6 +16,7 @@
 
 import { z } from '../../sdk/bundle';
 import { defineTool, defineTabTool } from './tool';
+import { dateAsFileName } from './utils';
 
 const navigate = defineTool({
   capability: 'core',
@@ -38,7 +39,7 @@ const navigate = defineTool({
     response.setIncludeSnapshot();
     // Handle snapshotFile parameter: false = inline, true/string/undefined = file
     if (params.snapshotFile !== false) {
-      const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : `navigate-${Date.now()}.yaml`;
+      const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'navigate');
       response.setSnapshotFile(filename);
     }
     response.addCode(`await page.goto('${params.url}');`);

@@ -31,11 +31,15 @@ test('browser_console_messages', async ({ client, server }) => {
     name: 'browser_navigate',
     arguments: {
       url: server.PREFIX,
+      snapshotFile: false,
     },
   });
 
   const resource = parseResponse(await client.callTool({
     name: 'browser_console_messages',
+    arguments: {
+      filename: false,
+    },
   }));
   expect(resource.result).toContain('Console Summary: 2 messages (1 errors, 0 warnings');
   expect(resource.result).toContain('[LOG] Hello, world!');
@@ -56,11 +60,15 @@ test('browser_console_messages (page error)', async ({ client, server }) => {
     name: 'browser_navigate',
     arguments: {
       url: server.PREFIX,
+      snapshotFile: false,
     },
   });
 
   const resource = await client.callTool({
     name: 'browser_console_messages',
+    arguments: {
+      filename: false,
+    },
   });
   expect(resource).toHaveResponse({
     result: expect.stringContaining(`Error: Error in script`),
@@ -82,6 +90,7 @@ test('recent console messages', async ({ client, server }) => {
     name: 'browser_navigate',
     arguments: {
       url: server.PREFIX,
+      snapshotFile: false,
     },
   });
 
@@ -103,6 +112,7 @@ test('browser_console_messages errors only', async ({ client, server }) => {
     name: 'browser_navigate',
     arguments: {
       url: server.HELLO_WORLD,
+      snapshotFile: false,
     },
   });
 
@@ -123,6 +133,7 @@ test('browser_console_messages errors only', async ({ client, server }) => {
     name: 'browser_console_messages',
     arguments: {
       onlyErrors: true,
+      filename: false,
     },
   }));
   expect.soft(response.result).toContain('Console Summary');
@@ -248,6 +259,7 @@ test('browser_console_messages with messageTypes filter', async ({ client, serve
     name: 'browser_navigate',
     arguments: {
       url: server.PREFIX,
+      snapshotFile: false,
     },
   });
 
@@ -255,6 +267,7 @@ test('browser_console_messages with messageTypes filter', async ({ client, serve
     name: 'browser_console_messages',
     arguments: {
       messageTypes: ['error', 'warning'],
+      filename: false,
     },
   }));
 
@@ -283,6 +296,43 @@ test('browser_console_messages summary with first error and warning', async ({ c
     name: 'browser_navigate',
     arguments: {
       url: server.PREFIX,
+      snapshotFile: false,
+    },
+  });
+
+  const response = parseResponse(await client.callTool({
+    name: 'browser_console_messages',
+    arguments: {
+      filename: false,
+    },
+  }));
+
+  expect(response.result).toContain('Console Summary: 5 messages (1 errors, 2 warnings');
+  expect(response.result).toContain('First error: [ERROR] First error');
+  expect(response.result).toContain('First warning: [WARNING] First warning');
+});
+
+test('browser_console_messages without filename saves to file by default', async ({ startClient, server }, testInfo) => {
+  const outputDir = testInfo.outputPath('output');
+  const { client } = await startClient({
+    config: { outputDir },
+  });
+
+  server.setContent('/', `
+    <!DOCTYPE html>
+    <html>
+      <script>
+        console.log("Hello, world!");
+        console.error("Error message");
+      </script>
+    </html>
+  `, 'text/html');
+
+  await client.callTool({
+    name: 'browser_navigate',
+    arguments: {
+      url: server.PREFIX,
+      snapshotFile: false,
     },
   });
 
@@ -290,9 +340,9 @@ test('browser_console_messages summary with first error and warning', async ({ c
     name: 'browser_console_messages',
   }));
 
-  expect(response.result).toContain('Console Summary: 5 messages (1 errors, 2 warnings');
-  expect(response.result).toContain('First error: [ERROR] First error');
-  expect(response.result).toContain('First warning: [WARNING] First warning');
+  expect(response.result).toContain('Console Summary: 2 messages');
+  expect(response.result).toContain('Saved 2 console messages');
+  expect(response.result).toContain('.txt');
 });
 
 test('browser_console_messages save with messageTypes filter', async ({ startClient, server }, testInfo) => {
@@ -316,6 +366,7 @@ test('browser_console_messages save with messageTypes filter', async ({ startCli
     name: 'browser_navigate',
     arguments: {
       url: server.PREFIX,
+      snapshotFile: false,
     },
   });
 
