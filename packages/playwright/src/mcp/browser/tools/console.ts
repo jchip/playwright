@@ -27,11 +27,11 @@ const console = defineTabTool({
   schema: {
     name: 'browser_console_messages',
     title: 'Get console messages',
-    description: 'Returns all console messages with optional filtering and summary. When filename is provided, saves to a file instead of returning inline (recommended for large logs).',
+    description: 'Returns all console messages with optional filtering and summary. By default saves to a file (recommended for large logs).',
     inputSchema: z.object({
       onlyErrors: z.boolean().optional().describe('Only return error messages (deprecated: use messageTypes instead)'),
       messageTypes: z.array(z.enum(['error', 'warning', 'log', 'info'])).optional().describe('Filter by message types. If not specified, returns all message types.'),
-      filename: z.string().optional().describe('File name to save the console messages to. Defaults to `console-{timestamp}.txt` if set to empty string. Prefer relative file names to stay within the output directory. When specified, console messages are saved to file instead of returned inline.'),
+      filename: z.union([z.string(), z.boolean()]).optional().describe('File name to save the console messages to. When true, uses default filename `console-{timestamp}.txt`. When false, returns messages inline. When a string, saves to that filename. Prefer relative file names to stay within the output directory.'),
     }),
     type: 'readOnly',
   },
@@ -63,9 +63,13 @@ const console = defineTabTool({
     const firstError = allMessages.find(m => m.type === 'error');
     const firstWarning = allMessages.find(m => m.type === 'warning');
 
-    if (params.filename !== undefined) {
-      // Save to file
-      const fileName = await tab.context.outputFile(params.filename || dateAsFileName('txt', 'console'), { origin: 'llm', reason: 'Saving console messages' });
+    // Handle filename parameter: false = inline, true/string/undefined = file
+    if (params.filename !== false) {
+      // Save to file (default behavior)
+      const fileName = await tab.context.outputFile(
+        typeof params.filename === 'string' ? params.filename : dateAsFileName('txt', 'console'),
+        { origin: 'llm', reason: 'Saving console messages' }
+      );
       const content = messages.map(message => message.toString()).join('\n');
 
       await mkdirIfNeeded(fileName);
@@ -79,7 +83,7 @@ const console = defineTabTool({
         response.addResult(`First warning: ${firstWarning.toString()}`);
       response.addResult(`\nSaved ${messages.length} console messages ${filterDesc} to ${fileName}`);
     } else {
-      // Return inline (original behavior)
+      // Return inline (when explicitly set to false)
       response.addResult(summaryText);
       if (firstError)
         response.addResult(`First error: ${firstError.toString()}`);
