@@ -118,7 +118,7 @@ export class Response {
 
   async serialize(options: { omitSnapshot?: boolean, omitBlobs?: boolean } = {}): Promise<{ content: (TextContent | ImageContent)[], isError?: boolean }> {
     // Handle snapshot file saving first, before building the response
-    if (this._tabSnapshot && !this._tabSnapshot.modalStates.length && this._snapshotFile !== undefined) {
+    if (this._tabSnapshot && this._snapshotFile !== undefined) {
       const fileName = await this._context.outputFile(this._snapshotFile || `snapshot-${Date.now()}.yaml`, { origin: 'llm', reason: 'Saving page snapshot' });
       const snapshotContent = renderTabSnapshot(this._tabSnapshot, { omitSnapshot: false });
 
