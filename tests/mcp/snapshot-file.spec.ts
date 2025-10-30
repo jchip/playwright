@@ -83,7 +83,8 @@ test('browser_snapshot with snapshotFile', async ({ startClient, server }, testI
   expect(content).toContain('Hello, world!');
 });
 
-test('browser_navigate without snapshotFile returns inline snapshot', async ({ client, server }) => {
+test('browser_navigate without snapshotFile saves to file by default', async ({ startClient, server }) => {
+  const { client } = await startClient();
   const response = parseResponse(await client.callTool({
     name: 'browser_navigate',
     arguments: {
@@ -91,11 +92,25 @@ test('browser_navigate without snapshotFile returns inline snapshot', async ({ c
     },
   }));
 
-  // Should include the page state inline (not saved to file)
+  // Should always save to file now
+  expect(response.result).toContain('Page snapshot saved to');
+  expect(response.result).toContain('.yaml');
+  expect(response.pageState).toBeFalsy();
+});
+
+test('browser_navigate with snapshotFile=false returns inline snapshot', async ({ startClient, server }) => {
+  const { client } = await startClient();
+  const response = parseResponse(await client.callTool({
+    name: 'browser_navigate',
+    arguments: {
+      url: server.HELLO_WORLD,
+      snapshotFile: false,
+    },
+  }));
+
+  // Should return inline snapshot when false
   expect(response.pageState).toBeTruthy();
   expect(response.pageState).toContain('Hello, world!');
-  // result field may not exist for navigate without errors, that's fine
-  if (response.result) {
-    expect(response.result).not.toContain('Page snapshot saved to');
-  }
+  // When inline, there should be no Result section
+  expect(response.result).toBeFalsy();
 });

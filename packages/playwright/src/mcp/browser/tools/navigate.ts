@@ -26,7 +26,7 @@ const navigate = defineTool({
     description: 'Navigate to a URL',
     inputSchema: z.object({
       url: z.string().describe('The URL to navigate to'),
-      snapshotFile: z.string().optional().describe('File name to save the page snapshot to. Defaults to `snapshot-{timestamp}.yaml` if set to empty string. Prefer relative file names to stay within the output directory. When specified, the page snapshot is saved to file instead of returned inline (recommended for large pages).'),
+      snapshotFile: z.union([z.string(), z.boolean()]).optional().describe('File name to save the page snapshot to, or false to disable saving. Defaults to `navigate-{timestamp}.yaml`. When true, uses default filename. When false, returns snapshot inline. Prefer relative file names to stay within the output directory.'),
     }),
     type: 'action',
   },
@@ -36,8 +36,11 @@ const navigate = defineTool({
     await tab.navigate(params.url);
 
     response.setIncludeSnapshot();
-    if (params.snapshotFile !== undefined)
-      response.setSnapshotFile(params.snapshotFile);
+    // Handle snapshotFile parameter: false = inline, true/string/undefined = file
+    if (params.snapshotFile !== false) {
+      const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : `navigate-${Date.now()}.yaml`;
+      response.setSnapshotFile(filename);
+    }
     response.addCode(`await page.goto('${params.url}');`);
   },
 });
