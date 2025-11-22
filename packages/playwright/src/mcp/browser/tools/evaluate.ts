@@ -66,6 +66,7 @@ const evaluate = defineTabTool({
         await fs.promises.writeFile(fileName, resultString, 'utf-8');
 
         response.addResult(`Evaluation result saved to ${fileName}`);
+        response.addResult(`File size: ${Buffer.byteLength(resultString, 'utf-8')} bytes`);
       } else {
         // Return inline (original behavior)
         response.addResult(resultString);

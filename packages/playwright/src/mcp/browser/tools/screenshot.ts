@@ -77,6 +77,7 @@ const screenshot = defineTabTool({
     await fs.promises.writeFile(fileName, buffer);
 
     response.addResult(`Took the ${screenshotTarget} screenshot and saved it as ${fileName}`);
+    response.addResult(`File size: ${buffer.length} bytes`);
 
     response.addImage({
       contentType: fileType === 'png' ? 'image/png' : 'image/jpeg',

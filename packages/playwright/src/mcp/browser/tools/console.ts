@@ -82,6 +82,7 @@ const console = defineTabTool({
       if (firstWarning)
         response.addResult(`First warning: ${firstWarning.toString()}`);
       response.addResult(`\nSaved ${messages.length} console messages ${filterDesc} to ${fileName}`);
+      response.addResult(`File size: ${Buffer.byteLength(content, 'utf-8')} bytes`);
     } else {
       // Return inline (when explicitly set to false)
       response.addResult(summaryText);
