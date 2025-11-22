@@ -39,6 +39,7 @@ export type TabEventsInterface = {
 export type TabSnapshot = {
   url: string;
   title: string;
+  viewport: { width: number, height: number };
   ariaSnapshot: string;
   modalStates: ModalState[];
   consoleMessages: ConsoleMessage[];
@@ -223,9 +224,11 @@ export class Tab extends EventEmitter<TabEventsInterface> {
     let tabSnapshot: TabSnapshot | undefined;
     const modalStates = await this._raceAgainstModalStates(async () => {
       const snapshot = await this.page._snapshotForAI({ mode, track: 'response' });
+      const viewportSize = this.page.viewportSize() || { width: 0, height: 0 };
       tabSnapshot = {
         url: this.page.url(),
         title: await this.page.title(),
+        viewport: viewportSize,
         ariaSnapshot: snapshot,
         modalStates: [],
         consoleMessages: [],
@@ -240,6 +243,7 @@ export class Tab extends EventEmitter<TabEventsInterface> {
     return tabSnapshot ?? {
       url: this.page.url(),
       title: '',
+      viewport: { width: 0, height: 0 },
       ariaSnapshot: '',
       modalStates,
       consoleMessages: [],
