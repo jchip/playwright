@@ -114,6 +114,7 @@ const requests = defineTabTool({
       await fs.promises.writeFile(fileName, content, 'utf-8');
 
       response.addResult(`${summary}\nSaved ${filteredRequests.length} network requests to ${fileName}`);
+      response.addResult(`File size: ${Buffer.byteLength(content, 'utf-8')} bytes`);
     } else {
       // Return inline (original behavior)
       response.addResult(summary);

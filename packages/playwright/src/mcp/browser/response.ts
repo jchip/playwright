@@ -127,6 +127,7 @@ export class Response {
 
       // Add result message
       this._result.push(`Page snapshot saved to ${fileName}`);
+      this._result.push(`File size: ${Buffer.byteLength(snapshotContent, 'utf-8')} bytes`);
       this._result.push(`Page URL: ${this._tabSnapshot.url}`);
       this._result.push(`Page Title: ${this._tabSnapshot.title}`);
     }
