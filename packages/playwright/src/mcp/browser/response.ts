@@ -216,6 +216,7 @@ function renderTabSnapshot(tabSnapshot: TabSnapshot, options: { omitSnapshot?: b
   lines.push(`### Page state`);
   lines.push(`- Page URL: ${tabSnapshot.url}`);
   lines.push(`- Page Title: ${tabSnapshot.title}`);
+  lines.push(`- Viewport: ${tabSnapshot.viewport.width}x${tabSnapshot.viewport.height}`);
   lines.push(`- Page Snapshot:`);
   lines.push('```yaml');
   // TODO: perhaps not render page state when there are no changes?
