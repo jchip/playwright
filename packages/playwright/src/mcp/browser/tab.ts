@@ -224,7 +224,9 @@ export class Tab extends EventEmitter<TabEventsInterface> {
     let tabSnapshot: TabSnapshot | undefined;
     const modalStates = await this._raceAgainstModalStates(async () => {
       const snapshot = await this.page._snapshotForAI({ mode, track: 'response' });
-      const viewportSize = this.page.viewportSize() || { width: 0, height: 0 };
+      let viewportSize = this.page.viewportSize();
+      if (!viewportSize)
+        viewportSize = await callOnPageNoTrace(this.page, page => page.evaluate(() => ({ width: window.innerWidth, height: window.innerHeight })));
       tabSnapshot = {
         url: this.page.url(),
         title: await this.page.title(),
