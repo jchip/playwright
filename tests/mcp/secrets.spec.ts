@@ -100,18 +100,8 @@ test('browser_fill_form', async ({ startClient, server }) => {
     name: 'browser_fill_form',
     arguments: {
       fields: [
-        {
-          name: 'Email textbox',
-          type: 'textbox',
-          ref: 'e4',
-          value: 'John Doe'
-        },
-        {
-          name: 'Password textbox',
-          type: 'textbox',
-          ref: 'e6',
-          value: 'X-PASSWORD'
-        },
+        { ref: 'e4', value: 'John Doe' },
+        { ref: 'e6', value: 'X-PASSWORD' },
       ]
     },
   })).toHaveResponse({

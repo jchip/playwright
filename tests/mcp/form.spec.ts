@@ -60,36 +60,11 @@ test('browser_fill_form (textbox)', async ({ client, server }) => {
     name: 'browser_fill_form',
     arguments: {
       fields: [
-        {
-          name: 'Name textbox',
-          type: 'textbox',
-          ref: 'e4',
-          value: 'John Doe'
-        },
-        {
-          name: 'Email textbox',
-          type: 'textbox',
-          ref: 'e6',
-          value: 'john.doe@example.com'
-        },
-        {
-          name: 'Age textbox',
-          type: 'slider',
-          ref: 'e8',
-          value: '25'
-        },
-        {
-          name: 'Country select',
-          type: 'combobox',
-          ref: 'e10',
-          value: 'United States'
-        },
-        {
-          name: 'Subscribe checkbox',
-          type: 'checkbox',
-          ref: 'e12',
-          value: 'true'
-        },
+        { ref: 'e4', value: 'John Doe' },
+        { ref: 'e6', value: 'john.doe@example.com' },
+        { ref: 'e8', value: '25' },
+        { ref: 'e10', value: 'United States' },
+        { ref: 'e12', value: 'true' },
       ]
     },
   })).toHaveResponse({
@@ -122,7 +97,7 @@ await page.getByRole('checkbox', { name: 'Subscribe to newsletter' }).setChecked
   });
 });
 
-test('browser_fill_form (without name parameter)', async ({ client, server }) => {
+test('browser_fill_form (simple ref+value)', async ({ client, server }) => {
   server.setContent('/', `
     <!DOCTYPE html>
     <html>
@@ -146,21 +121,13 @@ test('browser_fill_form (without name parameter)', async ({ client, server }) =>
     arguments: { url: server.PREFIX },
   });
 
-  // Fill form without providing optional 'name' parameter
+  // Fill form with just ref and value - type is auto-inferred
   expect(await client.callTool({
     name: 'browser_fill_form',
     arguments: {
       fields: [
-        {
-          type: 'textbox',
-          ref: 'e4',
-          value: 'Jane Doe'
-        },
-        {
-          type: 'checkbox',
-          ref: 'e6',
-          value: 'true'
-        },
+        { ref: 'e4', value: 'Jane Doe' },
+        { ref: 'e6', value: 'true' },
       ]
     },
   })).toHaveResponse({

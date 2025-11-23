@@ -18,6 +18,30 @@ import { z } from '../../sdk/bundle';
 import { defineTabTool } from './tool';
 import * as codegen from '../codegen';
 
+type FieldType = 'textbox' | 'checkbox' | 'radio' | 'combobox' | 'slider';
+
+function inferFieldType(resolved: string): FieldType | undefined {
+  // resolved looks like: getByRole('textbox', { name: '...' }) or getByLabel('...')
+  const roleMatch = resolved.match(/getByRole\('([^']+)'/);
+  if (roleMatch) {
+    const role = roleMatch[1];
+    if (role === 'textbox' || role === 'spinbutton' || role === 'searchbox')
+      return 'textbox';
+    if (role === 'checkbox')
+      return 'checkbox';
+    if (role === 'radio')
+      return 'radio';
+    if (role === 'combobox' || role === 'listbox')
+      return 'combobox';
+    if (role === 'slider')
+      return 'slider';
+  }
+  // getByLabel is often used for <select> elements
+  if (resolved.startsWith('getByLabel('))
+    return 'combobox';
+  return undefined;
+}
+
 const fillForm = defineTabTool({
   capability: 'core',
 
@@ -27,8 +51,6 @@ const fillForm = defineTabTool({
     description: 'Fill multiple form fields',
     inputSchema: z.object({
       fields: z.array(z.object({
-        name: z.string().optional().describe('Human-readable field name (optional, for logging)'),
-        type: z.enum(['textbox', 'checkbox', 'radio', 'combobox', 'slider']).describe('Type of the field'),
         ref: z.string().describe('Exact target field reference from the page snapshot'),
         value: z.string().describe('Value to fill in the field. If the field is a checkbox, the value should be `true` or `false`. If the field is a combobox, the value should be the text of the option.'),
       })).describe('Fields to fill in'),
@@ -38,18 +60,24 @@ const fillForm = defineTabTool({
 
   handle: async (tab, params, response) => {
     for (const field of params.fields) {
-      const { locator, resolved } = await tab.refLocator({ element: field.name ?? field.ref, ref: field.ref });
+      const { locator, resolved } = await tab.refLocator({ element: field.ref, ref: field.ref });
       const locatorSource = `await page.${resolved}`;
-      if (field.type === 'textbox' || field.type === 'slider') {
+      const type = inferFieldType(resolved);
+      if (type === 'textbox' || type === 'slider') {
         const secret = tab.context.lookupSecret(field.value);
         await locator.fill(secret.value);
         response.addCode(`${locatorSource}.fill(${secret.code});`);
-      } else if (field.type === 'checkbox' || field.type === 'radio') {
+      } else if (type === 'checkbox' || type === 'radio') {
         await locator.setChecked(field.value === 'true');
         response.addCode(`${locatorSource}.setChecked(${field.value});`);
-      } else if (field.type === 'combobox') {
+      } else if (type === 'combobox') {
         await locator.selectOption({ label: field.value });
         response.addCode(`${locatorSource}.selectOption(${codegen.quote(field.value)});`);
+      } else {
+        // Default to fill for unknown types
+        const secret = tab.context.lookupSecret(field.value);
+        await locator.fill(secret.value);
+        response.addCode(`${locatorSource}.fill(${secret.code});`);
       }
     }
   },
