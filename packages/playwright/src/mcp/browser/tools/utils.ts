@@ -17,7 +17,7 @@
 import type * as playwright from 'playwright-core';
 import type { Tab } from '../tab';
 
-export async function waitForCompletion<R>(tab: Tab, callback: () => Promise<R>): Promise<R> {
+export async function waitForCompletion<R>(tab: Tab, callback: () => Promise<R>): Promise<R | undefined> {
   const requests = new Set<playwright.Request>();
   let frameNavigated = false;
   let waitCallback: () => void = () => {};
@@ -67,9 +67,33 @@ export async function waitForCompletion<R>(tab: Tab, callback: () => Promise<R>)
     await waitBarrier;
     await tab.waitForTimeout(1000);
     return result;
+  } catch (error: unknown) {
+    // If navigation occurred or will occur shortly, don't report navigation-related errors
+    // as failures since the action succeeded in triggering the navigation.
+    if (isNavigationError(error)) {
+      // Wait a short time for the framenavigated event if it hasn't fired yet.
+      if (!frameNavigated)
+        await new Promise(resolve => setTimeout(resolve, 500));
+      if (frameNavigated) {
+        await waitBarrier;
+        await tab.waitForTimeout(1000);
+        return undefined;
+      }
+    }
+    throw error;
   } finally {
     dispose();
   }
+}
+
+function isNavigationError(error: unknown): boolean {
+  if (!(error instanceof Error))
+    return false;
+  const message = error.message.toLowerCase();
+  return message.includes('execution context was destroyed') ||
+         message.includes('most likely because of a navigation') ||
+         message.includes('frame was detached') ||
+         message.includes('navigating frame was detached');
 }
 
 export async function callOnPageNoTrace<T>(page: playwright.Page, callback: (page: playwright.Page) => Promise<T>): Promise<T> {
