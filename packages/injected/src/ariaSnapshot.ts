@@ -34,12 +34,15 @@ export type AriaNode = AriaProps & {
   box: Box;
   receivesPointerEvents: boolean;
   props: Record<string, string>;
+  value?: string;  // For textbox input values
 };
 
 function ariaNodesEqual(a: AriaNode, b: AriaNode): boolean {
   if (a.role !== b.role || a.name !== b.name)
     return false;
   if (!ariaPropsEqual(a, b) || hasPointerCursor(a) !== hasPointerCursor(b))
+    return false;
+  if (a.value !== b.value)
     return false;
   const aKeys = Object.keys(a.props);
   const bKeys = Object.keys(b.props);
@@ -209,6 +212,12 @@ export function generateAriaTree(rootElement: Element, publicOptions: AriaTreeOp
       const placeholder = element.getAttribute('placeholder')!;
       ariaNode.props['placeholder'] = placeholder;
     }
+
+    // Store textbox value for display in key
+    if (ariaNode.role === 'textbox' && (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement)) {
+      if (element.value)
+        ariaNode.value = element.value;
+    }
   }
 
   roleUtils.beginAriaCaches();
@@ -297,10 +306,8 @@ function toAriaNode(element: Element, options: InternalOptions): AriaNode | null
   if (roleUtils.kAriaSelectedRoles.includes(role))
     result.selected = roleUtils.getAriaSelected(element);
 
-  if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
-    if (element.type !== 'checkbox' && element.type !== 'radio' && element.type !== 'file')
-      result.children = [element.value];
-  }
+  // Note: textbox values are now stored in ariaNode.value (via processElement) and displayed
+  // as [value="..."] in the key, so we no longer set them as children to avoid duplication.
 
   return result;
 }
@@ -633,6 +640,14 @@ export function renderAriaTree(ariaSnapshot: AriaSnapshot, publicOptions: AriaTr
       key += ` [pressed]`;
     if (ariaNode.selected === true)
       key += ` [selected]`;
+
+    // Show value for textbox elements
+    if (ariaNode.value) {
+      const value = ariaNode.value;
+      // Truncate long values for readability
+      const displayValue = value.length > 50 ? value.slice(0, 50) + '...' : value;
+      key += ` [value=${JSON.stringify(displayValue)}]`;
+    }
 
     if (ariaNode.ref) {
       key += ` [ref=${ariaNode.ref}]`;
