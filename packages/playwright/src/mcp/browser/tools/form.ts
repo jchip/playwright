@@ -27,7 +27,7 @@ const fillForm = defineTabTool({
     description: 'Fill multiple form fields',
     inputSchema: z.object({
       fields: z.array(z.object({
-        name: z.string().describe('Human-readable field name'),
+        name: z.string().optional().describe('Human-readable field name (optional, for logging)'),
         type: z.enum(['textbox', 'checkbox', 'radio', 'combobox', 'slider']).describe('Type of the field'),
         ref: z.string().describe('Exact target field reference from the page snapshot'),
         value: z.string().describe('Value to fill in the field. If the field is a checkbox, the value should be `true` or `false`. If the field is a combobox, the value should be the text of the option.'),
@@ -38,7 +38,7 @@ const fillForm = defineTabTool({
 
   handle: async (tab, params, response) => {
     for (const field of params.fields) {
-      const { locator, resolved } = await tab.refLocator({ element: field.name, ref: field.ref });
+      const { locator, resolved } = await tab.refLocator({ element: field.name ?? field.ref, ref: field.ref });
       const locatorSource = `await page.${resolved}`;
       if (field.type === 'textbox' || field.type === 'slider') {
         const secret = tab.context.lookupSecret(field.value);
