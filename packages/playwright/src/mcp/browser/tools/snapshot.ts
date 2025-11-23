@@ -39,7 +39,7 @@ const snapshot = defineTool({
 });
 
 export const elementSchema = z.object({
-  element: z.string().describe('Human-readable element description used to obtain permission to interact with the element'),
+  element: z.string().optional().describe('Human-readable element description (optional, for logging)'),
   ref: z.string().describe('Exact target element reference from the page snapshot'),
 });
 
@@ -91,9 +91,9 @@ const drag = defineTabTool({
     title: 'Drag mouse',
     description: 'Perform drag and drop between two elements',
     inputSchema: z.object({
-      startElement: z.string().describe('Human-readable source element description used to obtain the permission to interact with the element'),
+      startElement: z.string().optional().describe('Human-readable source element description (optional, for logging)'),
       startRef: z.string().describe('Exact source element reference from the page snapshot'),
-      endElement: z.string().describe('Human-readable target element description used to obtain the permission to interact with the element'),
+      endElement: z.string().optional().describe('Human-readable target element description (optional, for logging)'),
       endRef: z.string().describe('Exact target element reference from the page snapshot'),
     }),
     type: 'input',

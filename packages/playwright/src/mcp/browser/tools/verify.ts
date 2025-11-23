@@ -74,7 +74,7 @@ const verifyList = defineTabTool({
     title: 'Verify list visible',
     description: 'Verify list is visible on the page',
     inputSchema: z.object({
-      element: z.string().describe('Human-readable list description'),
+      element: z.string().optional().describe('Human-readable list description (optional, for logging)'),
       ref: z.string().describe('Exact target element reference that points to the list'),
       items: z.array(z.string()).describe('Items to verify'),
     }),
@@ -109,7 +109,7 @@ const verifyValue = defineTabTool({
     description: 'Verify element value',
     inputSchema: z.object({
       type: z.enum(['textbox', 'checkbox', 'radio', 'combobox', 'slider']).describe('Type of the element'),
-      element: z.string().describe('Human-readable element description'),
+      element: z.string().optional().describe('Human-readable element description (optional, for logging)'),
       ref: z.string().describe('Exact target element reference that points to the element'),
       value: z.string().describe('Value to verify. For checkbox, use "true" or "false".'),
     }),

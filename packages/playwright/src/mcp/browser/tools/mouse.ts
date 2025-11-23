@@ -18,7 +18,7 @@ import { z } from '../../sdk/bundle';
 import { defineTabTool } from './tool';
 
 const elementSchema = z.object({
-  element: z.string().describe('Human-readable element description used to obtain permission to interact with the element'),
+  element: z.string().optional().describe('Human-readable element description (optional, for logging)'),
 });
 
 const mouseMove = defineTabTool({
