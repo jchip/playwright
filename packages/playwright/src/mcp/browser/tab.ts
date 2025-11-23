@@ -276,14 +276,14 @@ export class Tab extends EventEmitter<TabEventsInterface> {
     await this._raceAgainstModalStates(() => waitForCompletion(this, callback));
   }
 
-  async refLocator(params: { element: string, ref: string }): Promise<{ locator: Locator, resolved: string }> {
+  async refLocator(params: { element?: string, ref: string }): Promise<{ locator: Locator, resolved: string }> {
     return (await this.refLocators([params]))[0];
   }
 
-  async refLocators(params: { element: string, ref: string }[]): Promise<{ locator: Locator, resolved: string }[]> {
+  async refLocators(params: { element?: string, ref: string }[]): Promise<{ locator: Locator, resolved: string }[]> {
     return Promise.all(params.map(async param => {
       try {
-        const locator = this.page.locator(`aria-ref=${param.ref}`).describe(param.element) as Locator;
+        const locator = this.page.locator(`aria-ref=${param.ref}`).describe(param.element ?? param.ref) as Locator;
         const { resolvedSelector } = await locator._resolveSelector();
         return { locator, resolved: asLocator('javascript', resolvedSelector) };
       } catch (e) {

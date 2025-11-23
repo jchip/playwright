@@ -24,7 +24,7 @@ const extractElementData = defineTabTool({
     title: 'Extract element data',
     description: 'Extract text content and/or attributes from an element',
     inputSchema: z.object({
-      element: z.string().describe('Human-readable element description used to obtain permission to interact with the element'),
+      element: z.string().optional().describe('Human-readable element description (optional, for logging)'),
       ref: z.string().describe('Exact target element reference from the page snapshot'),
       text: z.boolean().optional().describe('Extract text content (textContent)'),
       html: z.boolean().optional().describe('Extract inner HTML'),
