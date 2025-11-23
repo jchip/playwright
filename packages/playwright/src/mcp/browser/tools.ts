@@ -27,6 +27,7 @@ import mouse from './tools/mouse';
 import navigate from './tools/navigate';
 import network from './tools/network';
 import pdf from './tools/pdf';
+import scroll from './tools/scroll';
 import snapshot from './tools/snapshot';
 import screenshot from './tools/screenshot';
 import tabs from './tools/tabs';
@@ -51,6 +52,7 @@ export const browserTools: Tool<any>[] = [
   ...network,
   ...mouse,
   ...pdf,
+  ...scroll,
   ...screenshot,
   ...snapshot,
   ...tabs,
