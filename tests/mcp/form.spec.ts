@@ -121,3 +121,61 @@ await page.getByRole('checkbox', { name: 'Subscribe to newsletter' }).setChecked
     pageState: expect.stringContaining('checkbox \"Subscribe to newsletter\" [checked]'),
   });
 });
+
+test('browser_fill_form (without name parameter)', async ({ client, server }) => {
+  server.setContent('/', `
+    <!DOCTYPE html>
+    <html>
+      <body>
+        <form>
+          <label>
+            <input type="text" id="name" name="name" />
+            Name
+          </label>
+          <label>
+            <input type="checkbox" name="agree" value="yes" />
+            I agree
+          </label>
+        </form>
+      </body>
+    </html>
+  `, 'text/html');
+
+  await client.callTool({
+    name: 'browser_navigate',
+    arguments: { url: server.PREFIX },
+  });
+
+  // Fill form without providing optional 'name' parameter
+  expect(await client.callTool({
+    name: 'browser_fill_form',
+    arguments: {
+      fields: [
+        {
+          type: 'textbox',
+          ref: 'e4',
+          value: 'Jane Doe'
+        },
+        {
+          type: 'checkbox',
+          ref: 'e6',
+          value: 'true'
+        },
+      ]
+    },
+  })).toHaveResponse({
+    code: `await page.getByRole('textbox', { name: 'Name' }).fill('Jane Doe');
+await page.getByRole('checkbox', { name: 'I agree' }).setChecked(true);`,
+  });
+
+  const response = await client.callTool({
+    name: 'browser_snapshot',
+    arguments: {},
+  });
+  expect.soft(response).toHaveResponse({
+    pageState: expect.stringMatching(/textbox "Name".*Jane Doe/),
+  });
+  expect.soft(response).toHaveResponse({
+    pageState: expect.stringContaining('checkbox \"I agree\" [checked]'),
+  });
+});
