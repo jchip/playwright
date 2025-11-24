@@ -40,6 +40,8 @@ const originalStdoutWrite = process.stdout.write;
 // eslint-disable-next-line no-restricted-properties
 const originalStderrWrite = process.stderr.write;
 
+const originalStdinIsTTY = process.stdin.isTTY;
+
 class TestServer {
   private _configLocation: ConfigLocation;
   private _configCLIOverrides: ConfigCLIOverrides;
@@ -106,6 +108,7 @@ export class TestServerDispatcher implements TestServerInterface {
 
     this._dispatchEvent = (method, params) => this.transport.sendEvent?.(method, params);
     this._testRunner.on(TestRunnerEvent.TestFilesChanged, testFiles => this._dispatchEvent('testFilesChanged', { testFiles }));
+    this._testRunner.on(TestRunnerEvent.TestPaused, params => this._dispatchEvent('testPaused', { errors: params.errors }));
   }
 
   private async _wireReporter(messageSink: (message: any) => void) {
@@ -152,8 +155,6 @@ export class TestServerDispatcher implements TestServerInterface {
   }
 
   async runGlobalSetup(params: Parameters<TestServerInterface['runGlobalSetup']>[0]): ReturnType<TestServerInterface['runGlobalSetup']> {
-    await this.runGlobalTeardown();
-
     const { reporter, report } = await this._collectingReporter();
     this._globalSetupReport = report;
     const { status } = await this._testRunner.runGlobalSetup([reporter, new ListReporter()]);
@@ -203,6 +204,8 @@ export class TestServerDispatcher implements TestServerInterface {
     const { status } = await this._testRunner.runTests(wireReporter, {
       ...params,
       doNotRunDepsOutsideProjectFilter: true,
+      pauseAtEnd: params.pauseAtEnd,
+      pauseOnError: params.pauseOnError,
     });
     return { status };
   }
@@ -250,10 +253,17 @@ export class TestServerDispatcher implements TestServerInterface {
       };
       process.stdout.write = stdoutWrite;
       process.stderr.write = stderrWrite;
+
+      // Override isTTY to prevent reporters from thinking they can block and wait for user SIGINT.
+      // We don't have a test for this, so be careful!
+      // https://github.com/microsoft/playwright/issues/37867
+      // @ts-expect-error types are wrong, isTTY can be undefined
+      process.stdin.isTTY = undefined;
     } else {
       debug.log = originalDebugLog;
       process.stdout.write = originalStdoutWrite;
       process.stderr.write = originalStderrWrite;
+      process.stdin.isTTY = originalStdinIsTTY;
     }
     /* eslint-enable no-restricted-properties */
   }

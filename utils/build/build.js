@@ -260,7 +260,7 @@ bundles.push({
   modulePath: 'packages/playwright/bundles/mcp',
   outdir: 'packages/playwright/lib',
   entryPoints: ['src/mcpBundleImpl.ts'],
-  external: ['express'],
+  external: ['express', '@anthropic-ai/sdk'],
   alias: {
     'raw-body': 'raw-body.ts',
   },
@@ -627,6 +627,12 @@ copyFiles.push({
 
 copyFiles.push({
   files: 'packages/playwright/src/agents/*.md',
+  from: 'packages/playwright/src',
+  to: 'packages/playwright/lib',
+});
+
+copyFiles.push({
+  files: 'packages/playwright/src/agents/*.yml',
   from: 'packages/playwright/src',
   to: 'packages/playwright/lib',
 });

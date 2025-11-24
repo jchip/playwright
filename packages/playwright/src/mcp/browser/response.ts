@@ -95,7 +95,7 @@ export class Response {
     // All the async snapshotting post-action is happening here.
     // Everything below should race against modal states.
     if (this._includeSnapshot !== 'none' && this._context.currentTab())
-      this._tabSnapshot = await this._context.currentTabOrDie().captureSnapshot(this._includeSnapshot);
+      this._tabSnapshot = await this._context.currentTabOrDie().captureSnapshot();
     for (const tab of this._context.tabs())
       await tab.updateTitle();
   }
@@ -120,7 +120,7 @@ export class Response {
     // Handle snapshot file saving first, before building the response
     if (this._tabSnapshot && this._snapshotFile !== undefined) {
       const fileName = await this._context.outputFile(this._snapshotFile || `snapshot-${Date.now()}.yaml`, { origin: 'llm', reason: 'Saving page snapshot' });
-      const snapshotContent = renderTabSnapshot(this._tabSnapshot, { omitSnapshot: false });
+      const snapshotContent = renderTabSnapshot(this._tabSnapshot, 'full');
 
       await mkdirIfNeeded(fileName);
       await fs.promises.writeFile(fileName, snapshotContent, 'utf-8');
@@ -160,7 +160,8 @@ ${this._code.join('\n')}
       response.push('');
     } else if (this._tabSnapshot && this._snapshotFile === undefined) {
       // Only render inline if not saving to file
-      response.push(renderTabSnapshot(this._tabSnapshot, options));
+      const includeSnapshot = options.omitSnapshot ? 'none' : this._includeSnapshot;
+      response.push(renderTabSnapshot(this._tabSnapshot, includeSnapshot));
       response.push('');
     }
 
@@ -192,7 +193,7 @@ ${this._code.join('\n')}
   }
 }
 
-function renderTabSnapshot(tabSnapshot: TabSnapshot, options: { omitSnapshot?: boolean } = {}): string {
+function renderTabSnapshot(tabSnapshot: TabSnapshot, includeSnapshot: 'none' | 'full' | 'incremental'): string {
   const lines: string[] = [];
 
   if (tabSnapshot.consoleMessages.length) {
@@ -213,15 +214,25 @@ function renderTabSnapshot(tabSnapshot: TabSnapshot, options: { omitSnapshot?: b
     lines.push('');
   }
 
+  if (includeSnapshot === 'incremental' && tabSnapshot.ariaSnapshotDiff === '') {
+    // When incremental snapshot is present, but empty, do not render page state altogether.
+    return lines.join('\n');
+  }
+
   lines.push(`### Page state`);
   lines.push(`- Page URL: ${tabSnapshot.url}`);
   lines.push(`- Page Title: ${tabSnapshot.title}`);
   lines.push(`- Viewport: ${tabSnapshot.viewport.width}x${tabSnapshot.viewport.height}`);
-  lines.push(`- Page Snapshot:`);
-  lines.push('```yaml');
-  // TODO: perhaps not render page state when there are no changes?
-  lines.push(options.omitSnapshot ? '<snapshot>' : (tabSnapshot.ariaSnapshot || '<no changes>'));
-  lines.push('```');
+
+  if (includeSnapshot !== 'none') {
+    lines.push(`- Page Snapshot:`);
+    lines.push('```yaml');
+    if (includeSnapshot === 'incremental' && tabSnapshot.ariaSnapshotDiff !== undefined)
+      lines.push(tabSnapshot.ariaSnapshotDiff);
+    else
+      lines.push(tabSnapshot.ariaSnapshot);
+    lines.push('```');
+  }
 
   return lines.join('\n');
 }
