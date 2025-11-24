@@ -18,6 +18,7 @@ import { z } from '../../sdk/bundle';
 import { defineTabTool } from './tool';
 import { snapshotFileSchema } from './snapshot';
 import { dateAsFileName } from './utils';
+import { shouldSaveSnapshotToFile } from './utils';
 
 const elementSchema = z.object({
   element: z.string().optional().describe('Human-readable element description (optional, for logging)'),
@@ -61,7 +62,7 @@ const mouseClick = defineTabTool({
 
   handle: async (tab, params, response) => {
     response.setIncludeSnapshot();
-    if (params.snapshotFile !== false) {
+    if (shouldSaveSnapshotToFile(params.snapshotFile)) {
       const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'mouseclick');
       response.setSnapshotFile(filename);
     }
@@ -96,7 +97,7 @@ const mouseDrag = defineTabTool({
 
   handle: async (tab, params, response) => {
     response.setIncludeSnapshot();
-    if (params.snapshotFile !== false) {
+    if (shouldSaveSnapshotToFile(params.snapshotFile)) {
       const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'mousedrag');
       response.setSnapshotFile(filename);
     }

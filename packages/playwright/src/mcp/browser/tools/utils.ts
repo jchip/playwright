@@ -104,3 +104,19 @@ export function dateAsFileName(extension: string, prefix: string = 'page'): stri
   const date = new Date();
   return `${prefix}-${date.toISOString().replace(/[:.]/g, '-')}.${extension}`;
 }
+
+/**
+ * Determines if snapshot should be saved to file.
+ * Uses environment variable PW_MCP_SNAPSHOT_INLINE as default when snapshotFile is undefined.
+ * - snapshotFile === false: return false (inline)
+ * - snapshotFile === true or string: return true (save to file)
+ * - snapshotFile === undefined: check env var, if PW_MCP_SNAPSHOT_INLINE=1 return false, otherwise return true
+ */
+export function shouldSaveSnapshotToFile(snapshotFile: boolean | string | undefined): boolean {
+  if (snapshotFile === false)
+    return false;
+  if (snapshotFile === true || typeof snapshotFile === 'string')
+    return true;
+  // When undefined, check env var for default behavior
+  return process.env.PW_MCP_SNAPSHOT_INLINE !== '1';
+}

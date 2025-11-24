@@ -18,6 +18,7 @@ import { z } from '../../sdk/bundle';
 import { defineTabTool } from './tool';
 import { snapshotFileSchema } from './snapshot';
 import { dateAsFileName } from './utils';
+import { shouldSaveSnapshotToFile } from './utils';
 
 export const uploadFile = defineTabTool({
   capability: 'core',
@@ -34,7 +35,7 @@ export const uploadFile = defineTabTool({
 
   handle: async (tab, params, response) => {
     response.setIncludeSnapshot();
-    if (params.snapshotFile !== false) {
+    if (shouldSaveSnapshotToFile(params.snapshotFile)) {
       const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'upload');
       response.setSnapshotFile(filename);
     }

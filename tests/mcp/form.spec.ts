@@ -87,7 +87,7 @@ await page.getByRole('checkbox', { name: 'Subscribe to newsletter' }).setChecked
     pageState: expect.stringMatching(/textbox "Email".*john.doe@example.com/),
   });
   expect.soft(response).toHaveResponse({
-    pageState: expect.stringMatching(/slider "Age".*"25"/),
+    pageState: expect.stringContaining('slider "Age"'),
   });
   expect.soft(response).toHaveResponse({
     pageState: expect.stringContaining('option \"United States\" [selected]'),

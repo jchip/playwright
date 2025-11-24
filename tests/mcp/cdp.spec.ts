@@ -55,6 +55,7 @@ test('cdp server reuse tab', async ({ cdpServer, startClient, server }) => {
   })).toHaveResponse({
     pageState: expect.stringContaining(`- Page URL: ${server.HELLO_WORLD}
 - Page Title: Title
+- Viewport: 1280x720
 - Page Snapshot:
 \`\`\`yaml
 - generic [active] [ref=e1]: Hello, world!

@@ -18,6 +18,7 @@ import { z } from '../../sdk/bundle';
 import { defineTabTool } from './tool';
 import { elementSchema, snapshotFileSchema } from './snapshot';
 import { dateAsFileName } from './utils';
+import { shouldSaveSnapshotToFile } from './utils';
 
 const scroll = defineTabTool({
   capability: 'core',
@@ -37,7 +38,7 @@ const scroll = defineTabTool({
 
   handle: async (tab, params, response) => {
     response.setIncludeSnapshot();
-    if (params.snapshotFile !== false) {
+    if (shouldSaveSnapshotToFile(params.snapshotFile)) {
       const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'scroll');
       response.setSnapshotFile(filename);
     }

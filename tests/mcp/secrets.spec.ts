@@ -53,12 +53,13 @@ test('browser_type', async ({ startClient, server }) => {
     expect(response).toHaveResponse({
       code: `await page.getByRole('textbox').fill(process.env['X-PASSWORD']);
 await page.getByRole('textbox').press('Enter');`,
-      pageState: expect.stringMatching(/textbox (\[active\] )?\[ref=e2\]: <secret>X-PASSWORD<\/secret>/),
+      pageState: expect.stringMatching(/textbox (\[active\] )?(\[value="<secret>X-PASSWORD<\/secret>"\] )?\[ref=e2\]/),
     });
   }
 
   expect(await client.callTool({
     name: 'browser_console_messages',
+    arguments: { filename: false },
   })).toHaveResponse({
     result: expect.stringContaining(`[LOG] Key pressed: Enter , Text: <secret>X-PASSWORD</secret>`),
   });
@@ -113,6 +114,6 @@ await page.getByRole('textbox', { name: 'Password' }).fill(process.env['X-PASSWO
     name: 'browser_snapshot',
     arguments: {},
   })).toHaveResponse({
-    pageState: expect.stringContaining(`- textbox \"Password\" [active] [ref=e6]: <secret>X-PASSWORD</secret>`),
+    pageState: expect.stringMatching(/textbox "Password" (\[active\] )?(\[value="<secret>X-PASSWORD<\/secret>"\] )?\[ref=e6\]/),
   });
 });

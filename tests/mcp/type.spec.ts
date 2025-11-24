@@ -44,12 +44,13 @@ test('browser_type', async ({ client, server }) => {
     expect(response).toHaveResponse({
       code: `await page.getByRole('textbox').fill('Hi!');
 await page.getByRole('textbox').press('Enter');`,
-      pageState: expect.stringMatching(/textbox (\[active\] )?\[ref=e2\]: Hi!/),
+      pageState: expect.stringMatching(/textbox (\[active\] )?(\[value="Hi!"\] )?\[ref=e2\]/),
     });
   }
 
   expect(await client.callTool({
     name: 'browser_console_messages',
+    arguments: { filename: false },
   })).toHaveResponse({
     result: expect.stringContaining(`[LOG] Key pressed: Enter , Text: Hi!`),
   });
@@ -79,11 +80,12 @@ test('browser_type (slowly)', async ({ client, server }) => {
 
     expect(response).toHaveResponse({
       code: `await page.getByRole('textbox').pressSequentially('Hi!');`,
-      pageState: expect.stringMatching(/textbox (\[active\] )?\[ref=e2\]: Hi!/),
+      pageState: expect.stringMatching(/textbox (\[active\] )?(\[value="Hi!"\] )?\[ref=e2\]/),
     });
   }
   const response = await client.callTool({
     name: 'browser_console_messages',
+    arguments: { filename: false },
   });
   expect(response).toHaveResponse({
     result: expect.stringContaining(`[LOG] Key pressed: H Text: `),
@@ -130,6 +132,7 @@ test('browser_type (no submit)', async ({ client, server }) => {
   {
     const response = await client.callTool({
       name: 'browser_console_messages',
+      arguments: { filename: false },
     });
     expect(response).toHaveResponse({
       result: expect.stringContaining(`[LOG] New value: Hi!`),

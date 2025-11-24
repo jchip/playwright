@@ -70,7 +70,7 @@ test('--init-page w/ --init-script', async ({ startClient, server }) => {
 
   expect(await client.callTool({
     name: 'browser_console_messages',
-    arguments: {},
+    arguments: { filename: false },
   })).toHaveResponse({
     result: expect.stringContaining('37.7749 -122.4194'),
   });

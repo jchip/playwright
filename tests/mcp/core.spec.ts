@@ -19,15 +19,18 @@ import { test, expect } from './fixtures';
 test('browser_navigate', async ({ client, server }) => {
   expect(await client.callTool({
     name: 'browser_navigate',
-    arguments: { url: server.HELLO_WORLD },
+    arguments: { url: server.HELLO_WORLD, snapshotFile: false },
   })).toHaveResponse({
     code: `await page.goto('${server.HELLO_WORLD}');`,
-    pageState: `- Page URL: ${server.HELLO_WORLD}
-- Page Title: Title
-- Page Snapshot:
-\`\`\`yaml
-- generic [active] [ref=e1]: Hello, world!
-\`\`\``,
+    pageState: expect.stringMatching(new RegExp(
+      `- Page URL: ${server.HELLO_WORLD.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\n` +
+      `- Page Title: Title\\n` +
+      `- Viewport: \\d+x\\d+\\n` +
+      `- Page Snapshot:\\n` +
+      '```yaml\\n' +
+      '- generic \\[active\\] \\[ref=e1\\]: Hello, world!\\n' +
+      '```'
+    )),
   });
 });
 
@@ -42,7 +45,7 @@ test('browser_select_option', async ({ client, server }) => {
 
   await client.callTool({
     name: 'browser_navigate',
-    arguments: { url: server.PREFIX },
+    arguments: { url: server.PREFIX, snapshotFile: false },
   });
 
   expect(await client.callTool({
@@ -51,17 +54,13 @@ test('browser_select_option', async ({ client, server }) => {
       element: 'Select',
       ref: 'e2',
       values: ['bar'],
+      snapshotFile: false,
     },
   })).toHaveResponse({
     code: `await page.getByRole('combobox').selectOption(['bar']);`,
-    pageState: `- Page URL: ${server.PREFIX}/
-- Page Title: Title
-- Page Snapshot:
-\`\`\`yaml
-- <changed> combobox [ref=e2]:
+    pageState: expect.stringContaining(`- <changed> combobox [ref=e2]:
   - option "Foo"
-  - option "Bar" [selected]
-\`\`\``,
+  - option "Bar" [selected]`),
   });
 });
 
@@ -77,7 +76,7 @@ test('browser_select_option (multiple)', async ({ client, server }) => {
 
   await client.callTool({
     name: 'browser_navigate',
-    arguments: { url: server.PREFIX },
+    arguments: { url: server.PREFIX, snapshotFile: false },
   });
 
   expect(await client.callTool({
@@ -86,6 +85,7 @@ test('browser_select_option (multiple)', async ({ client, server }) => {
       element: 'Select',
       ref: 'e2',
       values: ['bar', 'baz'],
+      snapshotFile: false,
     },
   })).toHaveResponse({
     code: `await page.getByRole('listbox').selectOption(['bar', 'baz']);`,
@@ -106,7 +106,7 @@ test('browser_resize', async ({ client, server }) => {
   `, 'text/html');
   await client.callTool({
     name: 'browser_navigate',
-    arguments: { url: server.PREFIX },
+    arguments: { url: server.PREFIX, snapshotFile: false },
   });
 
   const response = await client.callTool({
@@ -119,7 +119,7 @@ test('browser_resize', async ({ client, server }) => {
   expect(response).toHaveResponse({
     code: `await page.setViewportSize({ width: 390, height: 780 });`,
   });
-  await expect.poll(() => client.callTool({ name: 'browser_snapshot' })).toHaveResponse({
+  await expect.poll(() => client.callTool({ name: 'browser_snapshot', arguments: { snapshotFile: false } })).toHaveResponse({
     pageState: expect.stringContaining(`Window size: 390x780`),
   });
 });
@@ -139,6 +139,7 @@ test('old locator error message', async ({ client, server }) => {
     name: 'browser_navigate',
     arguments: {
       url: server.PREFIX,
+      snapshotFile: false,
     },
   })).toHaveResponse({
     pageState: expect.stringContaining(`
@@ -177,11 +178,12 @@ test('visibility: hidden > visible should be shown', { annotation: { type: 'issu
 
   await client.callTool({
     name: 'browser_navigate',
-    arguments: { url: server.PREFIX },
+    arguments: { url: server.PREFIX, snapshotFile: false },
   });
 
   expect(await client.callTool({
-    name: 'browser_snapshot'
+    name: 'browser_snapshot',
+    arguments: { snapshotFile: false },
   })).toHaveResponse({
     pageState: expect.stringContaining(`- button "Button"`),
   });
