@@ -16,6 +16,8 @@
 
 import { z } from '../../sdk/bundle';
 import { defineTabTool } from './tool';
+import { snapshotFileSchema } from './snapshot';
+import { dateAsFileName } from './utils';
 
 const elementSchema = z.object({
   element: z.string().optional().describe('Human-readable element description (optional, for logging)'),
@@ -53,12 +55,16 @@ const mouseClick = defineTabTool({
     inputSchema: elementSchema.extend({
       x: z.number().describe('X coordinate'),
       y: z.number().describe('Y coordinate'),
-    }),
+    }).merge(snapshotFileSchema),
     type: 'input',
   },
 
   handle: async (tab, params, response) => {
     response.setIncludeSnapshot();
+    if (params.snapshotFile !== false) {
+      const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'mouseclick');
+      response.setSnapshotFile(filename);
+    }
 
     response.addCode(`// Click mouse at coordinates (${params.x}, ${params.y})`);
     response.addCode(`await page.mouse.move(${params.x}, ${params.y});`);
@@ -84,12 +90,16 @@ const mouseDrag = defineTabTool({
       startY: z.number().describe('Start Y coordinate'),
       endX: z.number().describe('End X coordinate'),
       endY: z.number().describe('End Y coordinate'),
-    }),
+    }).merge(snapshotFileSchema),
     type: 'input',
   },
 
   handle: async (tab, params, response) => {
     response.setIncludeSnapshot();
+    if (params.snapshotFile !== false) {
+      const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'mousedrag');
+      response.setSnapshotFile(filename);
+    }
 
     response.addCode(`// Drag mouse from (${params.startX}, ${params.startY}) to (${params.endX}, ${params.endY})`);
     response.addCode(`await page.mouse.move(${params.startX}, ${params.startY});`);

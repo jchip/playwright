@@ -16,6 +16,8 @@
 
 import { z } from '../../sdk/bundle';
 import { defineTool } from './tool';
+import { snapshotFileSchema } from './snapshot';
+import { dateAsFileName } from './utils';
 
 const wait = defineTool({
   capability: 'core',
@@ -28,7 +30,7 @@ const wait = defineTool({
       time: z.number().optional().describe('The time to wait in seconds'),
       text: z.string().optional().describe('The text to wait for'),
       textGone: z.string().optional().describe('The text to wait for to disappear'),
-    }),
+    }).merge(snapshotFileSchema),
     type: 'assertion',
   },
 
@@ -57,6 +59,10 @@ const wait = defineTool({
 
     response.addResult(`Waited for ${params.text || params.textGone || params.time}`);
     response.setIncludeSnapshot();
+    if (params.snapshotFile !== false) {
+      const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'wait');
+      response.setSnapshotFile(filename);
+    }
   },
 });
 

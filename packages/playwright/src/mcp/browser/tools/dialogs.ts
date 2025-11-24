@@ -16,6 +16,8 @@
 
 import { z } from '../../sdk/bundle';
 import { defineTabTool } from './tool';
+import { snapshotFileSchema } from './snapshot';
+import { dateAsFileName } from './utils';
 
 export const handleDialog = defineTabTool({
   capability: 'core',
@@ -27,12 +29,16 @@ export const handleDialog = defineTabTool({
     inputSchema: z.object({
       accept: z.boolean().describe('Whether to accept the dialog.'),
       promptText: z.string().optional().describe('The text of the prompt in case of a prompt dialog.'),
-    }),
+    }).merge(snapshotFileSchema),
     type: 'action',
   },
 
   handle: async (tab, params, response) => {
     response.setIncludeSnapshot();
+    if (params.snapshotFile !== false) {
+      const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'dialog');
+      response.setSnapshotFile(filename);
+    }
 
     const dialogState = tab.modalStates().find(state => state.type === 'dialog');
     if (!dialogState)

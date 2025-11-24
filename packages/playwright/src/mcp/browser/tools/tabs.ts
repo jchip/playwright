@@ -16,6 +16,8 @@
 
 import { z } from '../../sdk/bundle';
 import { defineTool } from './tool';
+import { snapshotFileSchema } from './snapshot';
+import { dateAsFileName } from './utils';
 
 const browserTabs = defineTool({
   capability: 'core-tabs',
@@ -27,7 +29,7 @@ const browserTabs = defineTool({
     inputSchema: z.object({
       action: z.enum(['list', 'new', 'close', 'select']).describe('Operation to perform'),
       index: z.number().optional().describe('Tab index, used for close/select. If omitted for close, current tab is closed.'),
-    }),
+    }).merge(snapshotFileSchema),
     type: 'action',
   },
 
@@ -46,6 +48,10 @@ const browserTabs = defineTool({
       case 'close': {
         await context.closeTab(params.index);
         response.setIncludeSnapshot('full');
+        if (params.snapshotFile !== false) {
+          const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'tabs');
+          response.setSnapshotFile(filename);
+        }
         return;
       }
       case 'select': {
@@ -53,6 +59,10 @@ const browserTabs = defineTool({
           throw new Error('Tab index is required');
         await context.selectTab(params.index);
         response.setIncludeSnapshot('full');
+        if (params.snapshotFile !== false) {
+          const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'tabs');
+          response.setSnapshotFile(filename);
+        }
         return;
       }
     }

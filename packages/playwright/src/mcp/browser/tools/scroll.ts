@@ -16,7 +16,8 @@
 
 import { z } from '../../sdk/bundle';
 import { defineTabTool } from './tool';
-import { elementSchema } from './snapshot';
+import { elementSchema, snapshotFileSchema } from './snapshot';
+import { dateAsFileName } from './utils';
 
 const scroll = defineTabTool({
   capability: 'core',
@@ -30,12 +31,16 @@ const scroll = defineTabTool({
       direction: z.enum(['up', 'down', 'left', 'right']).optional().describe('Direction to scroll'),
       amount: z.enum(['page', 'halfPage', 'pixels']).optional().default('page').describe('Amount to scroll. "page" scrolls by viewport height/width, "halfPage" by half, "pixels" by specific pixel amount'),
       pixels: z.number().optional().describe('Pixel amount when amount is "pixels". Default is 100.'),
-    }),
+    }).merge(snapshotFileSchema),
     type: 'action',
   },
 
   handle: async (tab, params, response) => {
     response.setIncludeSnapshot();
+    if (params.snapshotFile !== false) {
+      const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'scroll');
+      response.setSnapshotFile(filename);
+    }
 
     // If ref is provided, scroll element into view
     if (params.ref) {
