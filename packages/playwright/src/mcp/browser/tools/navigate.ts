@@ -52,13 +52,19 @@ const goBack = defineTabTool({
     name: 'browser_navigate_back',
     title: 'Go back',
     description: 'Go back to the previous page',
-    inputSchema: z.object({}),
+    inputSchema: z.object({
+      snapshotFile: z.union([z.string(), z.boolean()]).optional().describe('File name to save the page snapshot to, or false to return inline. Defaults to saving to file with auto-generated name. Prefer relative file names to stay within the output directory.'),
+    }),
     type: 'action',
   },
 
   handle: async (tab, params, response) => {
     await tab.page.goBack();
     response.setIncludeSnapshot();
+    if (params.snapshotFile !== false) {
+      const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'goback');
+      response.setSnapshotFile(filename);
+    }
     response.addCode(`await page.goBack();`);
   },
 });

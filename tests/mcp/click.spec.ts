@@ -38,6 +38,7 @@ test('browser_click', async ({ client, server }) => {
     arguments: {
       element: 'Submit button',
       ref: 'e2',
+      snapshotFile: false,
     },
   })).toHaveResponse({
     code: `await page.getByRole('button', { name: 'Submit' }).click();`,
@@ -67,6 +68,7 @@ test('browser_click (double)', async ({ client, server }) => {
       element: 'Click me',
       ref: 'e2',
       doubleClick: true,
+      snapshotFile: false,
     },
   })).toHaveResponse({
     code: `await page.getByRole('heading', { name: 'Click me' }).dblclick();`,
@@ -96,6 +98,7 @@ test('browser_click (right)', async ({ client, server }) => {
       element: 'Menu',
       ref: 'e2',
       button: 'right',
+      snapshotFile: false,
     },
   });
   expect(result).toHaveResponse({
@@ -128,6 +131,7 @@ test('browser_click (modifiers)', async ({ client, server, mcpBrowser }) => {
         element: 'Submit button',
         ref: 'e2',
         modifiers: ['Control'],
+        snapshotFile: false,
       },
     })).toHaveResponse({
       code: `await page.getByRole('button', { name: 'Submit' }).click({ modifiers: ['Control'] });`,
@@ -141,6 +145,7 @@ test('browser_click (modifiers)', async ({ client, server, mcpBrowser }) => {
       element: 'Submit button',
       ref: 'e2',
       modifiers: ['Shift'],
+      snapshotFile: false,
     },
   })).toHaveResponse({
     code: `await page.getByRole('button', { name: 'Submit' }).click({ modifiers: ['Shift'] });`,
@@ -153,6 +158,7 @@ test('browser_click (modifiers)', async ({ client, server, mcpBrowser }) => {
       element: 'Submit button',
       ref: 'e2',
       modifiers: ['Shift', 'Alt'],
+      snapshotFile: false,
     },
   })).toHaveResponse({
     code: `await page.getByRole('button', { name: 'Submit' }).click({ modifiers: ['Shift', 'Alt'] });`,

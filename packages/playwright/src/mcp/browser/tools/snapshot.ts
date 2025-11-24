@@ -47,11 +47,15 @@ export const elementSchema = z.object({
   ref: z.string().describe('Exact target element reference from the page snapshot'),
 });
 
+export const snapshotFileSchema = z.object({
+  snapshotFile: z.union([z.string(), z.boolean()]).optional().describe('File name to save the page snapshot to, or false to return inline. Defaults to saving to file with auto-generated name. Prefer relative file names to stay within the output directory.'),
+});
+
 const clickSchema = elementSchema.extend({
   doubleClick: z.boolean().optional().describe('Whether to perform a double click instead of a single click'),
   button: z.enum(['left', 'right', 'middle']).optional().describe('Button to click, defaults to left'),
   modifiers: z.array(z.enum(['Alt', 'Control', 'ControlOrMeta', 'Meta', 'Shift'])).optional().describe('Modifier keys to press'),
-});
+}).merge(snapshotFileSchema);
 
 const click = defineTabTool({
   capability: 'core',
@@ -65,6 +69,10 @@ const click = defineTabTool({
 
   handle: async (tab, params, response) => {
     response.setIncludeSnapshot();
+    if (params.snapshotFile !== false) {
+      const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'click');
+      response.setSnapshotFile(filename);
+    }
 
     const { locator, resolved } = await tab.refLocator(params);
     const options = {
@@ -99,12 +107,16 @@ const drag = defineTabTool({
       startRef: z.string().describe('Exact source element reference from the page snapshot'),
       endElement: z.string().optional().describe('Human-readable target element description (optional, for logging)'),
       endRef: z.string().describe('Exact target element reference from the page snapshot'),
-    }),
+    }).merge(snapshotFileSchema),
     type: 'input',
   },
 
   handle: async (tab, params, response) => {
     response.setIncludeSnapshot();
+    if (params.snapshotFile !== false) {
+      const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'drag');
+      response.setSnapshotFile(filename);
+    }
 
     const [start, end] = await tab.refLocators([
       { ref: params.startRef, element: params.startElement },
@@ -125,12 +137,16 @@ const hover = defineTabTool({
     name: 'browser_hover',
     title: 'Hover mouse',
     description: 'Hover over element on page',
-    inputSchema: elementSchema,
+    inputSchema: elementSchema.merge(snapshotFileSchema),
     type: 'input',
   },
 
   handle: async (tab, params, response) => {
     response.setIncludeSnapshot();
+    if (params.snapshotFile !== false) {
+      const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'hover');
+      response.setSnapshotFile(filename);
+    }
 
     const { locator, resolved } = await tab.refLocator(params);
     response.addCode(`await page.${resolved}.hover();`);
@@ -143,7 +159,7 @@ const hover = defineTabTool({
 
 const selectOptionSchema = elementSchema.extend({
   values: z.array(z.string()).describe('Array of values to select in the dropdown. This can be a single value or multiple values.'),
-});
+}).merge(snapshotFileSchema);
 
 const selectOption = defineTabTool({
   capability: 'core',
@@ -157,6 +173,10 @@ const selectOption = defineTabTool({
 
   handle: async (tab, params, response) => {
     response.setIncludeSnapshot();
+    if (params.snapshotFile !== false) {
+      const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'select');
+      response.setSnapshotFile(filename);
+    }
 
     const { locator, resolved } = await tab.refLocator(params);
     response.addCode(`await page.${resolved}.selectOption(${javascript.formatObject(params.values)});`);

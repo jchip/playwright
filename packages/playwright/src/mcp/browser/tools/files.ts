@@ -16,6 +16,8 @@
 
 import { z } from '../../sdk/bundle';
 import { defineTabTool } from './tool';
+import { snapshotFileSchema } from './snapshot';
+import { dateAsFileName } from './utils';
 
 export const uploadFile = defineTabTool({
   capability: 'core',
@@ -26,12 +28,16 @@ export const uploadFile = defineTabTool({
     description: 'Upload one or multiple files',
     inputSchema: z.object({
       paths: z.array(z.string()).optional().describe('The absolute paths to the files to upload. Can be single file or multiple files. If omitted, file chooser is cancelled.'),
-    }),
+    }).merge(snapshotFileSchema),
     type: 'action',
   },
 
   handle: async (tab, params, response) => {
     response.setIncludeSnapshot();
+    if (params.snapshotFile !== false) {
+      const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'upload');
+      response.setSnapshotFile(filename);
+    }
 
     const modalState = tab.modalStates().find(state => state.type === 'fileChooser');
     if (!modalState)

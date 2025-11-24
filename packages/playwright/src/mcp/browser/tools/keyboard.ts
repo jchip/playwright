@@ -16,7 +16,8 @@
 
 import { z } from '../../sdk/bundle';
 import { defineTabTool } from './tool';
-import { elementSchema } from './snapshot';
+import { elementSchema, snapshotFileSchema } from './snapshot';
+import { dateAsFileName } from './utils';
 
 const pressKey = defineTabTool({
   capability: 'core',
@@ -27,12 +28,16 @@ const pressKey = defineTabTool({
     description: 'Press a key on the keyboard',
     inputSchema: z.object({
       key: z.string().describe('Name of the key to press or a character to generate, such as `ArrowLeft` or `a`'),
-    }),
+    }).merge(snapshotFileSchema),
     type: 'input',
   },
 
   handle: async (tab, params, response) => {
     response.setIncludeSnapshot();
+    if (params.snapshotFile !== false) {
+      const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'presskey');
+      response.setSnapshotFile(filename);
+    }
     response.addCode(`// Press ${params.key}`);
     response.addCode(`await page.keyboard.press('${params.key}');`);
 
@@ -46,7 +51,7 @@ const typeSchema = elementSchema.extend({
   text: z.string().describe('Text to type into the element'),
   submit: z.boolean().optional().describe('Whether to submit entered text (press Enter after)'),
   slowly: z.boolean().optional().describe('Whether to type one character at a time. Useful for triggering key handlers in the page. By default entire text is filled in at once.'),
-});
+}).merge(snapshotFileSchema);
 
 const type = defineTabTool({
   capability: 'core',
@@ -65,6 +70,10 @@ const type = defineTabTool({
     await tab.waitForCompletion(async () => {
       if (params.slowly) {
         response.setIncludeSnapshot();
+        if (params.snapshotFile !== false) {
+          const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'type');
+          response.setSnapshotFile(filename);
+        }
         response.addCode(`await page.${resolved}.pressSequentially(${secret.code});`);
         await locator.pressSequentially(secret.value);
       } else {
@@ -74,6 +83,10 @@ const type = defineTabTool({
 
       if (params.submit) {
         response.setIncludeSnapshot();
+        if (params.snapshotFile !== false) {
+          const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'type');
+          response.setSnapshotFile(filename);
+        }
         response.addCode(`await page.${resolved}.press('Enter');`);
         await locator.press('Enter');
       }

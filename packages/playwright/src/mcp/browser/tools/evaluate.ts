@@ -22,6 +22,7 @@ import { z } from '../../sdk/bundle';
 import { defineTabTool } from './tool';
 import * as javascript from '../codegen';
 import { dateAsFileName } from './utils';
+import { snapshotFileSchema } from './snapshot';
 
 import type { Tab } from '../tab';
 
@@ -30,7 +31,7 @@ const evaluateSchema = z.object({
   element: z.string().optional().describe('Human-readable element description used to obtain permission to interact with the element'),
   ref: z.string().optional().describe('Exact target element reference from the page snapshot'),
   filename: z.string().optional().describe('File name to save the evaluation result to. Defaults to `evaluate-{timestamp}.json` if set to empty string. Prefer relative file names to stay within the output directory. When specified, the result is saved to file instead of returned inline (useful for large results like dumping state objects).'),
-});
+}).merge(snapshotFileSchema);
 
 const evaluate = defineTabTool({
   capability: 'core',
@@ -44,6 +45,10 @@ const evaluate = defineTabTool({
 
   handle: async (tab, params, response) => {
     response.setIncludeSnapshot();
+    if (params.snapshotFile !== false) {
+      const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'evaluate');
+      response.setSnapshotFile(filename);
+    }
 
     let locator: Awaited<ReturnType<Tab['refLocator']>> | undefined;
     if (params.ref && params.element) {
