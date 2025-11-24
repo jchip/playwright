@@ -16,6 +16,7 @@
 
 import { z } from '../../sdk/bundle';
 import { defineTabTool, defineTool } from './tool';
+import { dateAsFileName } from './utils';
 import * as javascript from '../codegen';
 
 const snapshot = defineTool({
@@ -25,7 +26,7 @@ const snapshot = defineTool({
     title: 'Page snapshot',
     description: 'Capture accessibility snapshot of the current page, this is better than screenshot',
     inputSchema: z.object({
-      snapshotFile: z.string().optional().describe('File name to save the page snapshot to. Defaults to `snapshot-{timestamp}.yaml` if set to empty string. Prefer relative file names to stay within the output directory. When specified, the page snapshot is saved to file instead of returned inline (recommended for large pages).'),
+      snapshotFile: z.union([z.string(), z.boolean()]).optional().describe('File name to save the page snapshot to, or false to return inline. Defaults to `snapshot-{timestamp}.yaml`. When true or omitted, uses default filename. When false, returns snapshot inline. Prefer relative file names to stay within the output directory.'),
     }),
     type: 'readOnly',
   },
@@ -33,8 +34,11 @@ const snapshot = defineTool({
   handle: async (context, params, response) => {
     await context.ensureTab();
     response.setIncludeSnapshot('full');
-    if (params.snapshotFile !== undefined)
-      response.setSnapshotFile(params.snapshotFile);
+    // Handle snapshotFile parameter: false = inline, true/string/undefined = file
+    if (params.snapshotFile !== false) {
+      const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'snapshot');
+      response.setSnapshotFile(filename);
+    }
   },
 });
 
