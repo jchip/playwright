@@ -17,6 +17,7 @@
 import { z } from '../../sdk/bundle';
 import { defineTabTool, defineTool } from './tool';
 import { dateAsFileName } from './utils';
+import { shouldSaveSnapshotToFile } from './utils';
 import * as javascript from '../codegen';
 
 const snapshot = defineTool({
@@ -34,8 +35,8 @@ const snapshot = defineTool({
   handle: async (context, params, response) => {
     await context.ensureTab();
     response.setIncludeSnapshot('full');
-    // Handle snapshotFile parameter: false = inline, true/string/undefined = file
-    if (params.snapshotFile !== false) {
+    // Handle snapshotFile parameter: false = inline, true/string/undefined = file (respects PW_MCP_SNAPSHOT_INLINE env)
+    if (shouldSaveSnapshotToFile(params.snapshotFile)) {
       const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'snapshot');
       response.setSnapshotFile(filename);
     }
@@ -69,7 +70,7 @@ const click = defineTabTool({
 
   handle: async (tab, params, response) => {
     response.setIncludeSnapshot();
-    if (params.snapshotFile !== false) {
+    if (shouldSaveSnapshotToFile(params.snapshotFile)) {
       const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'click');
       response.setSnapshotFile(filename);
     }
@@ -113,7 +114,7 @@ const drag = defineTabTool({
 
   handle: async (tab, params, response) => {
     response.setIncludeSnapshot();
-    if (params.snapshotFile !== false) {
+    if (shouldSaveSnapshotToFile(params.snapshotFile)) {
       const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'drag');
       response.setSnapshotFile(filename);
     }
@@ -143,7 +144,7 @@ const hover = defineTabTool({
 
   handle: async (tab, params, response) => {
     response.setIncludeSnapshot();
-    if (params.snapshotFile !== false) {
+    if (shouldSaveSnapshotToFile(params.snapshotFile)) {
       const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'hover');
       response.setSnapshotFile(filename);
     }
@@ -173,7 +174,7 @@ const selectOption = defineTabTool({
 
   handle: async (tab, params, response) => {
     response.setIncludeSnapshot();
-    if (params.snapshotFile !== false) {
+    if (shouldSaveSnapshotToFile(params.snapshotFile)) {
       const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'select');
       response.setSnapshotFile(filename);
     }

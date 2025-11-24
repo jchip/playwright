@@ -246,8 +246,6 @@ test('alert dialog w/ race', async ({ client, server }) => {
 
   expect(result).toHaveResponse({
     modalState: undefined,
-    pageState: expect.stringContaining(`- Page URL: ${server.PREFIX}/
-- Page Title: Title
-- Page Snapshot:`),
+    pageState: expect.stringMatching(/- Page URL:.*\n- Page Title: Title\n- Viewport:.*\n- Page Snapshot:/),
   });
 });

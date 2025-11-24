@@ -84,18 +84,26 @@ test('browser_snapshot with snapshotFile', async ({ startClient, server }, testI
 });
 
 test('browser_navigate without snapshotFile saves to file by default', async ({ startClient, server }) => {
-  const { client } = await startClient();
-  const response = parseResponse(await client.callTool({
-    name: 'browser_navigate',
-    arguments: {
-      url: server.HELLO_WORLD,
-    },
-  }));
+  // Temporarily unset the test env var to test our fork's default file-saving behavior
+  const prevEnv = process.env.PW_MCP_SNAPSHOT_INLINE;
+  delete process.env.PW_MCP_SNAPSHOT_INLINE;
+  try {
+    const { client } = await startClient();
+    const response = parseResponse(await client.callTool({
+      name: 'browser_navigate',
+      arguments: {
+        url: server.HELLO_WORLD,
+      },
+    }));
 
-  // Should always save to file now
-  expect(response.result).toContain('Page snapshot saved to');
-  expect(response.result).toContain('.yaml');
-  expect(response.pageState).toBeFalsy();
+    // Should always save to file now (our fork's default behavior)
+    expect(response.result).toContain('Page snapshot saved to');
+    expect(response.result).toContain('.yaml');
+    expect(response.pageState).toBeFalsy();
+  } finally {
+    if (prevEnv !== undefined)
+      process.env.PW_MCP_SNAPSHOT_INLINE = prevEnv;
+  }
 });
 
 test('browser_navigate with snapshotFile=false returns inline snapshot', async ({ startClient, server }) => {

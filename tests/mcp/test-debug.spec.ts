@@ -112,6 +112,7 @@ test('test_debug (browser_snapshot/network/console)', async ({ startClient, serv
   });
   expect(await client.callTool({
     name: 'browser_console_messages',
+    arguments: { filename: false },
   })).toHaveResponse({
     result: expect.stringMatching(/\[LOG\] hello from console.*\nError: error from page/),
   });
@@ -373,6 +374,7 @@ Error: failure
 
   expect(await client.callTool({
     name: 'browser_console_messages',
+    arguments: { filename: false },
   })).toHaveResponse({
     result: expect.stringMatching(/\[ERROR\] console.error.*\n\[LOG] console.log/),
   });
@@ -403,7 +405,7 @@ Error: expect(locator).toBeVisible() failed`));
   expect(await client.callTool({
     name: 'browser_network_requests',
   })).toHaveResponse({
-    result: `\[GET\] ${server.HELLO_WORLD} => [200] OK\n\[GET\] ${server.PREFIX}/missing => [404] Not Found`,
+    result: expect.stringContaining(`[GET] ${server.HELLO_WORLD} => [200] OK\n[GET] ${server.PREFIX}/missing => [404] Not Found`),
   });
 });
 

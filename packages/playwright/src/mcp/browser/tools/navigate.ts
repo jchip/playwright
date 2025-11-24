@@ -17,6 +17,7 @@
 import { z } from '../../sdk/bundle';
 import { defineTool, defineTabTool } from './tool';
 import { dateAsFileName } from './utils';
+import { shouldSaveSnapshotToFile } from './utils';
 
 const navigate = defineTool({
   capability: 'core',
@@ -37,8 +38,8 @@ const navigate = defineTool({
     await tab.navigate(params.url);
 
     response.setIncludeSnapshot();
-    // Handle snapshotFile parameter: false = inline, true/string/undefined = file
-    if (params.snapshotFile !== false) {
+    // Handle snapshotFile parameter: false = inline, true/string/undefined = file (respects PW_MCP_SNAPSHOT_INLINE env)
+    if (shouldSaveSnapshotToFile(params.snapshotFile)) {
       const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'navigate');
       response.setSnapshotFile(filename);
     }
@@ -61,7 +62,7 @@ const goBack = defineTabTool({
   handle: async (tab, params, response) => {
     await tab.page.goBack();
     response.setIncludeSnapshot();
-    if (params.snapshotFile !== false) {
+    if (shouldSaveSnapshotToFile(params.snapshotFile)) {
       const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'goback');
       response.setSnapshotFile(filename);
     }

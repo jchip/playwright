@@ -18,6 +18,7 @@ import { z } from '../../sdk/bundle';
 import { defineTabTool } from './tool';
 import { elementSchema, snapshotFileSchema } from './snapshot';
 import { dateAsFileName } from './utils';
+import { shouldSaveSnapshotToFile } from './utils';
 
 const pressKey = defineTabTool({
   capability: 'core',
@@ -34,7 +35,7 @@ const pressKey = defineTabTool({
 
   handle: async (tab, params, response) => {
     response.setIncludeSnapshot();
-    if (params.snapshotFile !== false) {
+    if (shouldSaveSnapshotToFile(params.snapshotFile)) {
       const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'presskey');
       response.setSnapshotFile(filename);
     }
@@ -70,7 +71,7 @@ const type = defineTabTool({
     await tab.waitForCompletion(async () => {
       if (params.slowly) {
         response.setIncludeSnapshot();
-        if (params.snapshotFile !== false) {
+        if (shouldSaveSnapshotToFile(params.snapshotFile)) {
           const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'type');
           response.setSnapshotFile(filename);
         }
@@ -83,7 +84,7 @@ const type = defineTabTool({
 
       if (params.submit) {
         response.setIncludeSnapshot();
-        if (params.snapshotFile !== false) {
+        if (shouldSaveSnapshotToFile(params.snapshotFile)) {
           const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'type');
           response.setSnapshotFile(filename);
         }

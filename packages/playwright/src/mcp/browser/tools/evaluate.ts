@@ -22,6 +22,7 @@ import { z } from '../../sdk/bundle';
 import { defineTabTool } from './tool';
 import * as javascript from '../codegen';
 import { dateAsFileName } from './utils';
+import { shouldSaveSnapshotToFile } from './utils';
 import { snapshotFileSchema } from './snapshot';
 
 import type { Tab } from '../tab';
@@ -45,7 +46,7 @@ const evaluate = defineTabTool({
 
   handle: async (tab, params, response) => {
     response.setIncludeSnapshot();
-    if (params.snapshotFile !== false) {
+    if (shouldSaveSnapshotToFile(params.snapshotFile)) {
       const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'evaluate');
       response.setSnapshotFile(filename);
     }

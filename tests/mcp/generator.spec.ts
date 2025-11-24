@@ -48,6 +48,7 @@ test('generator tools intent', async ({ startClient }) => {
     'browser_press_key',
     'browser_resize',
     'browser_run_code',
+    'browser_scroll',
     'browser_select_option',
     'browser_tabs',
     'browser_type',

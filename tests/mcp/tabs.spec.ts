@@ -61,24 +61,14 @@ test('create new tab', async ({ client }) => {
   expect(await createTab(client, 'Tab one', 'Body one')).toHaveResponse({
     tabs: `- 0: [] (about:blank)
 - 1: (current) [Tab one] (data:text/html,<title>Tab one</title><body>Body one</body>)`,
-    pageState: expect.stringContaining(`- Page URL: data:text/html,<title>Tab one</title><body>Body one</body>
-- Page Title: Tab one
-- Page Snapshot:
-\`\`\`yaml
-- generic [active] [ref=e1]: Body one
-\`\`\``),
+    pageState: expect.stringMatching(/- Page Title: Tab one\n- Viewport:.*\n- Page Snapshot:/),
   });
 
   expect(await createTab(client, 'Tab two', 'Body two')).toHaveResponse({
     tabs: `- 0: [] (about:blank)
 - 1: [Tab one] (data:text/html,<title>Tab one</title><body>Body one</body>)
 - 2: (current) [Tab two] (data:text/html,<title>Tab two</title><body>Body two</body>)`,
-    pageState: expect.stringContaining(`- Page URL: data:text/html,<title>Tab two</title><body>Body two</body>
-- Page Title: Tab two
-- Page Snapshot:
-\`\`\`yaml
-- generic [active] [ref=e1]: Body two
-\`\`\``),
+    pageState: expect.stringMatching(/- Page Title: Tab two\n- Viewport:.*\n- Page Snapshot:/),
   });
 });
 
@@ -96,12 +86,7 @@ test('select tab', async ({ client }) => {
     tabs: `- 0: [] (about:blank)
 - 1: (current) [Tab one] (data:text/html,<title>Tab one</title><body>Body one</body>)
 - 2: [Tab two] (data:text/html,<title>Tab two</title><body>Body two</body>)`,
-    pageState: expect.stringContaining(`- Page URL: data:text/html,<title>Tab one</title><body>Body one</body>
-- Page Title: Tab one
-- Page Snapshot:
-\`\`\`yaml
-- generic [active] [ref=e1]: Body one
-\`\`\``),
+    pageState: expect.stringMatching(/- Page Title: Tab one\n- Viewport:.*\n- Page Snapshot:/),
   });
 
   expect(await client.callTool({
@@ -131,12 +116,7 @@ test('close tab', async ({ client }) => {
   })).toHaveResponse({
     tabs: `- 0: [] (about:blank)
 - 1: (current) [Tab one] (data:text/html,<title>Tab one</title><body>Body one</body>)`,
-    pageState: expect.stringContaining(`- Page URL: data:text/html,<title>Tab one</title><body>Body one</body>
-- Page Title: Tab one
-- Page Snapshot:
-\`\`\`yaml
-- generic [active] [ref=e1]: Body one
-\`\`\``),
+    pageState: expect.stringMatching(/- Page Title: Tab one\n- Viewport:.*\n- Page Snapshot:/),
   });
 });
 

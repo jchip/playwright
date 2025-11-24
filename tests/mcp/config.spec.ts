@@ -69,6 +69,7 @@ test.describe(() => {
     await fs.promises.writeFile(configPath, JSON.stringify(config, null, 2));
 
     const { client } = await startClient({ args: ['--config', configPath] });
+    await client.callTool({ name: 'browser_install' });
     expect(await client.callTool({
       name: 'browser_navigate',
       arguments: { url: 'data:text/html,<script>document.title = navigator.userAgent</script>' },
