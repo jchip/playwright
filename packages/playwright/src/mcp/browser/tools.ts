@@ -27,7 +27,15 @@ import mouse from './tools/mouse';
 import navigate from './tools/navigate';
 import network from './tools/network';
 import pdf from './tools/pdf';
+<<<<<<< Updated upstream
+<<<<<<< HEAD
+=======
+import runCode from './tools/runCode';
+>>>>>>> Stashed changes
 import scroll from './tools/scroll';
+=======
+import runCode from './tools/runCode';
+>>>>>>> e4af1585fcfa98f475e1702b2f98e04026cae4c2
 import snapshot from './tools/snapshot';
 import screenshot from './tools/screenshot';
 import tabs from './tools/tabs';
@@ -52,7 +60,15 @@ export const browserTools: Tool<any>[] = [
   ...network,
   ...mouse,
   ...pdf,
+<<<<<<< Updated upstream
+<<<<<<< HEAD
+=======
+  ...runCode,
+>>>>>>> Stashed changes
   ...scroll,
+=======
+  ...runCode,
+>>>>>>> e4af1585fcfa98f475e1702b2f98e04026cae4c2
   ...screenshot,
   ...snapshot,
   ...tabs,

@@ -183,7 +183,7 @@ export const WorkbenchLoader: React.FunctionComponent<{
       {model.title && <div className='title'>{model.title}</div>}
       <div className='spacer'></div>
       <DialogToolbarButton icon='settings-gear' title='Settings' dialogDataTestId='settings-toolbar-dialog'>
-        <DefaultSettingsView />
+        <DefaultSettingsView location='trace-viewer' />
       </DialogToolbarButton>
     </div>
     <Workbench model={model} inert={showFileUploadDropArea} />
@@ -213,8 +213,9 @@ export const WorkbenchLoader: React.FunctionComponent<{
         input.click();
         input.addEventListener('change', e => handleFileInputChange(e));
       }} type='button'>Select file</button>
-      <div style={{ maxWidth: 400 }}>Playwright Trace Viewer is a Progressive Web App, it does not send your trace anywhere,
+      <div className='info'>Playwright Trace Viewer is a Progressive Web App, it does not send your trace anywhere,
         it opens it locally.</div>
+      <div className='version'>Playwright v{__APP_VERSION__}</div>
     </div>}
     {isServer && !traceURL && <div className='drop-target'>
       <div className='title'>Select test to see the trace</div>

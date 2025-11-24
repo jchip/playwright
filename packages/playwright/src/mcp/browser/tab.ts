@@ -23,6 +23,7 @@ import { logUnhandledError } from '../log';
 import { ModalState } from './tools/tool';
 import { handleDialog } from './tools/dialogs';
 import { uploadFile } from './tools/files';
+import { requireOrImport } from '../../transform/transform';
 
 import type { Context } from './context';
 import type { Page } from '../../../../playwright-core/src/client/page';
@@ -41,6 +42,7 @@ export type TabSnapshot = {
   title: string;
   viewport: { width: number, height: number };
   ariaSnapshot: string;
+  ariaSnapshotDiff?: string;
   modalStates: ModalState[];
   consoleMessages: ConsoleMessage[];
   downloads: { download: playwright.Download, finished: boolean, outputFile: string }[];
@@ -56,7 +58,9 @@ export class Tab extends EventEmitter<TabEventsInterface> {
   private _onPageClose: (tab: Tab) => void;
   private _modalStates: ModalState[] = [];
   private _downloads: { download: playwright.Download, finished: boolean, outputFile: string }[] = [];
+  // TODO: split into Tab and TabHeader
   private _initializedPromise: Promise<void>;
+  private _needsFullSnapshot = false;
 
   constructor(context: Context, page: playwright.Page, onPageClose: (tab: Tab) => void) {
     super();
@@ -106,6 +110,14 @@ export class Tab extends EventEmitter<TabEventsInterface> {
     const requests = await this.page.requests().catch(() => []);
     for (const request of requests)
       this._requests.add(request);
+    for (const initPage of this.context.config.browser.initPage || []) {
+      try {
+        const { default: func } = await requireOrImport(initPage);
+        await func({ page: this.page });
+      } catch (e) {
+        logUnhandledError(e);
+      }
+    }
   }
 
   modalStates(): ModalState[] {
@@ -176,10 +188,12 @@ export class Tab extends EventEmitter<TabEventsInterface> {
   }
 
   async waitForLoadState(state: 'load', options?: { timeout?: number }): Promise<void> {
+    await this._initializedPromise;
     await callOnPageNoTrace(this.page, page => page.waitForLoadState(state, options).catch(logUnhandledError));
   }
 
   async navigate(url: string) {
+    await this._initializedPromise;
     this._clearCollectedArtifacts();
 
     const downloadEvent = callOnPageNoTrace(this.page, page => page.waitForEvent('download').catch(logUnhandledError));
@@ -220,10 +234,16 @@ export class Tab extends EventEmitter<TabEventsInterface> {
     return this._requests;
   }
 
-  async captureSnapshot(mode: 'full' | 'incremental'): Promise<TabSnapshot> {
+  async captureSnapshot(): Promise<TabSnapshot> {
+    await this._initializedPromise;
     let tabSnapshot: TabSnapshot | undefined;
     const modalStates = await this._raceAgainstModalStates(async () => {
+<<<<<<< Updated upstream
+<<<<<<< HEAD
       const snapshot = await this.page._snapshotForAI({ mode, track: 'response' });
+=======
+      const snapshot = await this.page._snapshotForAI({ track: 'response' });
+>>>>>>> Stashed changes
       let viewportSize = this.page.viewportSize();
       if (!viewportSize)
         viewportSize = await callOnPageNoTrace(this.page, page => page.evaluate(() => ({ width: window.innerWidth, height: window.innerHeight })));
@@ -231,7 +251,20 @@ export class Tab extends EventEmitter<TabEventsInterface> {
         url: this.page.url(),
         title: await this.page.title(),
         viewport: viewportSize,
+<<<<<<< Updated upstream
         ariaSnapshot: snapshot,
+=======
+      const snapshot = await this.page._snapshotForAI({ track: 'response' });
+      tabSnapshot = {
+        url: this.page.url(),
+        title: await this.page.title(),
+        ariaSnapshot: snapshot.full,
+        ariaSnapshotDiff: this._needsFullSnapshot ? undefined : snapshot.incremental,
+>>>>>>> e4af1585fcfa98f475e1702b2f98e04026cae4c2
+=======
+        ariaSnapshot: snapshot.full,
+        ariaSnapshotDiff: this._needsFullSnapshot ? undefined : snapshot.incremental,
+>>>>>>> Stashed changes
         modalStates: [],
         consoleMessages: [],
         downloads: this._downloads,
@@ -242,6 +275,9 @@ export class Tab extends EventEmitter<TabEventsInterface> {
       tabSnapshot.consoleMessages = this._recentConsoleMessages;
       this._recentConsoleMessages = [];
     }
+    // If we failed to capture a snapshot this time, make sure we do a full one next time,
+    // to avoid reporting deltas against un-reported snapshot.
+    this._needsFullSnapshot = !tabSnapshot;
     return tabSnapshot ?? {
       url: this.page.url(),
       title: '',
@@ -275,14 +311,30 @@ export class Tab extends EventEmitter<TabEventsInterface> {
   }
 
   async waitForCompletion(callback: () => Promise<void>) {
+    await this._initializedPromise;
     await this._raceAgainstModalStates(() => waitForCompletion(this, callback));
   }
 
+<<<<<<< HEAD
   async refLocator(params: { element?: string, ref: string }): Promise<{ locator: Locator, resolved: string }> {
+    await this._initializedPromise;
     return (await this.refLocators([params]))[0];
   }
 
   async refLocators(params: { element?: string, ref: string }[]): Promise<{ locator: Locator, resolved: string }[]> {
+<<<<<<< Updated upstream
+=======
+  async refLocator(params: { element: string, ref: string }): Promise<{ locator: Locator, resolved: string }> {
+    await this._initializedPromise;
+    return (await this.refLocators([params]))[0];
+  }
+
+  async refLocators(params: { element: string, ref: string }[]): Promise<{ locator: Locator, resolved: string }[]> {
+    await this._initializedPromise;
+>>>>>>> e4af1585fcfa98f475e1702b2f98e04026cae4c2
+=======
+    await this._initializedPromise;
+>>>>>>> Stashed changes
     return Promise.all(params.map(async param => {
       try {
         const locator = this.page.locator(`aria-ref=${param.ref}`).describe(param.element ?? param.ref) as Locator;
@@ -301,7 +353,7 @@ export class Tab extends EventEmitter<TabEventsInterface> {
     }
 
     await callOnPageNoTrace(this.page, page => {
-      return page.evaluate(() => new Promise(f => setTimeout(f, 1000)));
+      return page.evaluate(() => new Promise(f => setTimeout(f, 1000))).catch(() => {});
     });
   }
 }

@@ -46,6 +46,7 @@ export type CLIOptions = {
   host?: string;
   ignoreHttpsErrors?: boolean;
   initScript?: string[];
+  initPage?: string[];
   isolated?: boolean;
   imageResponses?: 'allow' | 'omit';
   sandbox?: boolean;
@@ -129,6 +130,12 @@ async function validateConfig(config: FullConfig): Promise<void> {
     for (const script of config.browser.initScript) {
       if (!await fileExistsAsync(script))
         throw new Error(`Init script file does not exist: ${script}`);
+    }
+  }
+  if (config.browser.initPage) {
+    for (const page of config.browser.initPage) {
+      if (!await fileExistsAsync(page))
+        throw new Error(`Init page file does not exist: ${page}`);
     }
   }
   if (config.sharedBrowserContext && config.saveVideo)
@@ -218,6 +225,7 @@ export function configFromCLIOptions(cliOptions: CLIOptions): Config {
       contextOptions,
       cdpEndpoint: cliOptions.cdpEndpoint,
       cdpHeaders: cliOptions.cdpHeader,
+      initPage: cliOptions.initPage,
       initScript: cliOptions.initScript,
     },
     server: {
@@ -264,6 +272,9 @@ function configFromEnv(): Config {
   options.headless = envToBoolean(process.env.PLAYWRIGHT_MCP_HEADLESS);
   options.host = envToString(process.env.PLAYWRIGHT_MCP_HOST);
   options.ignoreHttpsErrors = envToBoolean(process.env.PLAYWRIGHT_MCP_IGNORE_HTTPS_ERRORS);
+  const initPage = envToString(process.env.PLAYWRIGHT_MCP_INIT_PAGE);
+  if (initPage)
+    options.initPage = [initPage];
   const initScript = envToString(process.env.PLAYWRIGHT_MCP_INIT_SCRIPT);
   if (initScript)
     options.initScript = [initScript];
