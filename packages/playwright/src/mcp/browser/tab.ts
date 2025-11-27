@@ -238,12 +238,7 @@ export class Tab extends EventEmitter<TabEventsInterface> {
     await this._initializedPromise;
     let tabSnapshot: TabSnapshot | undefined;
     const modalStates = await this._raceAgainstModalStates(async () => {
-<<<<<<< Updated upstream
-<<<<<<< HEAD
-      const snapshot = await this.page._snapshotForAI({ mode, track: 'response' });
-=======
       const snapshot = await this.page._snapshotForAI({ track: 'response' });
->>>>>>> Stashed changes
       let viewportSize = this.page.viewportSize();
       if (!viewportSize)
         viewportSize = await callOnPageNoTrace(this.page, page => page.evaluate(() => ({ width: window.innerWidth, height: window.innerHeight })));
@@ -251,20 +246,8 @@ export class Tab extends EventEmitter<TabEventsInterface> {
         url: this.page.url(),
         title: await this.page.title(),
         viewport: viewportSize,
-<<<<<<< Updated upstream
-        ariaSnapshot: snapshot,
-=======
-      const snapshot = await this.page._snapshotForAI({ track: 'response' });
-      tabSnapshot = {
-        url: this.page.url(),
-        title: await this.page.title(),
         ariaSnapshot: snapshot.full,
         ariaSnapshotDiff: this._needsFullSnapshot ? undefined : snapshot.incremental,
->>>>>>> e4af1585fcfa98f475e1702b2f98e04026cae4c2
-=======
-        ariaSnapshot: snapshot.full,
-        ariaSnapshotDiff: this._needsFullSnapshot ? undefined : snapshot.incremental,
->>>>>>> Stashed changes
         modalStates: [],
         consoleMessages: [],
         downloads: this._downloads,
@@ -315,26 +298,13 @@ export class Tab extends EventEmitter<TabEventsInterface> {
     await this._raceAgainstModalStates(() => waitForCompletion(this, callback));
   }
 
-<<<<<<< HEAD
   async refLocator(params: { element?: string, ref: string }): Promise<{ locator: Locator, resolved: string }> {
     await this._initializedPromise;
     return (await this.refLocators([params]))[0];
   }
 
   async refLocators(params: { element?: string, ref: string }[]): Promise<{ locator: Locator, resolved: string }[]> {
-<<<<<<< Updated upstream
-=======
-  async refLocator(params: { element: string, ref: string }): Promise<{ locator: Locator, resolved: string }> {
     await this._initializedPromise;
-    return (await this.refLocators([params]))[0];
-  }
-
-  async refLocators(params: { element: string, ref: string }[]): Promise<{ locator: Locator, resolved: string }[]> {
-    await this._initializedPromise;
->>>>>>> e4af1585fcfa98f475e1702b2f98e04026cae4c2
-=======
-    await this._initializedPromise;
->>>>>>> Stashed changes
     return Promise.all(params.map(async param => {
       try {
         const locator = this.page.locator(`aria-ref=${param.ref}`).describe(param.element ?? param.ref) as Locator;

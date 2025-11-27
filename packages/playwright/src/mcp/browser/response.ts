@@ -158,20 +158,10 @@ ${this._code.join('\n')}
     if (this._tabSnapshot?.modalStates.length) {
       response.push(...renderModalStates(this._context, this._tabSnapshot.modalStates));
       response.push('');
-<<<<<<< HEAD
     } else if (this._tabSnapshot && this._snapshotFile === undefined) {
       // Only render inline if not saving to file
-<<<<<<< Updated upstream
-      response.push(renderTabSnapshot(this._tabSnapshot, options));
-=======
-    } else if (this._tabSnapshot) {
       const includeSnapshot = options.omitSnapshot ? 'none' : this._includeSnapshot;
       response.push(renderTabSnapshot(this._tabSnapshot, includeSnapshot));
->>>>>>> e4af1585fcfa98f475e1702b2f98e04026cae4c2
-=======
-      const includeSnapshot = options.omitSnapshot ? 'none' : this._includeSnapshot;
-      response.push(renderTabSnapshot(this._tabSnapshot, includeSnapshot));
->>>>>>> Stashed changes
       response.push('');
     }
 
@@ -232,17 +222,7 @@ function renderTabSnapshot(tabSnapshot: TabSnapshot, includeSnapshot: 'none' | '
   lines.push(`### Page state`);
   lines.push(`- Page URL: ${tabSnapshot.url}`);
   lines.push(`- Page Title: ${tabSnapshot.title}`);
-<<<<<<< HEAD
   lines.push(`- Viewport: ${tabSnapshot.viewport.width}x${tabSnapshot.viewport.height}`);
-<<<<<<< Updated upstream
-  lines.push(`- Page Snapshot:`);
-  lines.push('```yaml');
-  // TODO: perhaps not render page state when there are no changes?
-  lines.push(options.omitSnapshot ? '<snapshot>' : (tabSnapshot.ariaSnapshot || '<no changes>'));
-  lines.push('```');
-=======
-=======
->>>>>>> Stashed changes
 
   if (includeSnapshot !== 'none') {
     lines.push(`- Page Snapshot:`);
@@ -253,10 +233,6 @@ function renderTabSnapshot(tabSnapshot: TabSnapshot, includeSnapshot: 'none' | '
       lines.push(tabSnapshot.ariaSnapshot);
     lines.push('```');
   }
-<<<<<<< Updated upstream
->>>>>>> e4af1585fcfa98f475e1702b2f98e04026cae4c2
-=======
->>>>>>> Stashed changes
 
   return lines.join('\n');
 }
