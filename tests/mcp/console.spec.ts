@@ -312,12 +312,51 @@ test('browser_console_messages summary with first error and warning', async ({ c
   expect(response.result).toContain('First warning: [WARNING] First warning');
 });
 
-test('browser_console_messages without filename saves to file by default', async ({ startClient, server }, testInfo) => {
+test('browser_console_messages without filename saves to file by default when large', async ({ startClient, server }, testInfo) => {
+  const outputDir = testInfo.outputPath('output');
+  const { client } = await startClient({
+    config: { outputDir },
+    env: { PW_MCP_SIZE_THRESHOLD: '1024' }, // Override the 10MB test default to test auto-save
+  });
+
+  // Generate enough console messages to exceed 1KB threshold for auto-save
+  const messageCount = 50;
+  const messages = Array.from({ length: messageCount }, (_, i) =>
+    `console.log("Message ${i}: ${'x'.repeat(30)}");`).join('\n');
+
+  server.setContent('/', `
+    <!DOCTYPE html>
+    <html>
+      <script>
+        ${messages}
+      </script>
+    </html>
+  `, 'text/html');
+
+  await client.callTool({
+    name: 'browser_navigate',
+    arguments: {
+      url: server.PREFIX,
+      snapshotFile: false,
+    },
+  });
+
+  const response = parseResponse(await client.callTool({
+    name: 'browser_console_messages',
+  }));
+
+  expect(response.result).toContain(`Console Summary: ${messageCount} messages`);
+  expect(response.result).toContain(`Saved ${messageCount} console messages`);
+  expect(response.result).toContain('.txt');
+});
+
+test('browser_console_messages inlines small content by default', async ({ startClient, server }, testInfo) => {
   const outputDir = testInfo.outputPath('output');
   const { client } = await startClient({
     config: { outputDir },
   });
 
+  // Small content (< 1KB threshold) should be inlined, not saved to file
   server.setContent('/', `
     <!DOCTYPE html>
     <html>
@@ -341,8 +380,10 @@ test('browser_console_messages without filename saves to file by default', async
   }));
 
   expect(response.result).toContain('Console Summary: 2 messages');
-  expect(response.result).toContain('Saved 2 console messages');
-  expect(response.result).toContain('.txt');
+  // Small content should be inlined, not saved to file
+  expect(response.result).not.toContain('Saved');
+  expect(response.result).toContain('[LOG] Hello, world!');
+  expect(response.result).toContain('[ERROR] Error message');
 });
 
 test('browser_console_messages save with messageTypes filter', async ({ startClient, server }, testInfo) => {

@@ -17,8 +17,6 @@
 import { z } from '../../sdk/bundle';
 import { defineTool } from './tool';
 import { snapshotFileSchema } from './snapshot';
-import { dateAsFileName } from './utils';
-import { shouldSaveSnapshotToFile } from './utils';
 
 const wait = defineTool({
   capability: 'core',
@@ -60,10 +58,7 @@ const wait = defineTool({
 
     response.addResult(`Waited for ${params.text || params.textGone || params.time}`);
     response.setIncludeSnapshot();
-    if (shouldSaveSnapshotToFile(params.snapshotFile)) {
-      const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'wait');
-      response.setSnapshotFile(filename);
-    }
+    response.setSnapshotFile(params.snapshotFile);
   },
 });
 

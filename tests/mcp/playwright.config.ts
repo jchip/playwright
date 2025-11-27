@@ -20,9 +20,9 @@ import { defineConfig } from '@playwright/test';
 import type { TestOptions } from './fixtures';
 import type { ReporterDescription } from '@playwright/test';
 
-// Set environment variable to default to inline snapshots for tests
-// This preserves upstream behavior in tests while our fork defaults to file-based snapshots
-process.env.PW_MCP_SNAPSHOT_INLINE = '1';
+// Set a very large threshold so tests default to inline (preserves upstream behavior)
+// Our fork's default is 1KB, but for tests we want inline unless explicitly testing file save
+process.env.PW_MCP_SIZE_THRESHOLD = '10000000'; // 10MB
 
 const rootTestDir = path.join(__dirname, '..');
 const testDir = path.join(rootTestDir, 'mcp');

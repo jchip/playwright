@@ -20,7 +20,7 @@ import { mkdirIfNeeded } from 'playwright-core/lib/utils';
 
 import { z } from '../../sdk/bundle';
 import { defineTabTool } from './tool';
-import { dateAsFileName } from './utils';
+import { determineOutputFile } from './utils';
 
 const console = defineTabTool({
   capability: 'core',
@@ -63,33 +63,24 @@ const console = defineTabTool({
     const firstError = allMessages.find(m => m.type === 'error');
     const firstWarning = allMessages.find(m => m.type === 'warning');
 
-    // Handle filename parameter: false = inline, true/string/undefined = file
-    if (params.filename !== false) {
-      // Save to file (default behavior)
-      const fileName = await tab.context.outputFile(
-        typeof params.filename === 'string' ? params.filename : dateAsFileName('txt', 'console'),
-        { origin: 'llm', reason: 'Saving console messages' }
-      );
-      const content = messages.map(message => message.toString()).join('\n');
+    const content = messages.map(message => message.toString()).join('\n');
+    const contentSize = Buffer.byteLength(content, 'utf-8');
+    const filterDesc = types ? `(filtered to: ${types.join(', ')})` : '';
 
+    response.addResult(summaryText);
+    if (firstError)
+      response.addResult(`First error: ${firstError.toString()}`);
+    if (firstWarning)
+      response.addResult(`First warning: ${firstWarning.toString()}`);
+
+    const outputFile = determineOutputFile(params.filename, contentSize, 'console', 'txt');
+    if (outputFile) {
+      const fileName = await tab.context.outputFile(outputFile, { origin: 'llm', reason: 'Saving console messages' });
       await mkdirIfNeeded(fileName);
       await fs.promises.writeFile(fileName, content, 'utf-8');
-
-      const filterDesc = types ? `(filtered to: ${types.join(', ')})` : '';
-      response.addResult(summaryText);
-      if (firstError)
-        response.addResult(`First error: ${firstError.toString()}`);
-      if (firstWarning)
-        response.addResult(`First warning: ${firstWarning.toString()}`);
       response.addResult(`\nSaved ${messages.length} console messages ${filterDesc} to ${fileName}`);
-      response.addResult(`File size: ${Buffer.byteLength(content, 'utf-8')} bytes`);
+      response.addResult(`File size: ${contentSize} bytes`);
     } else {
-      // Return inline (when explicitly set to false)
-      response.addResult(summaryText);
-      if (firstError)
-        response.addResult(`First error: ${firstError.toString()}`);
-      if (firstWarning)
-        response.addResult(`First warning: ${firstWarning.toString()}`);
       response.addResult(''); // Empty line separator
       messages.map(message => response.addResult(message.toString()));
     }

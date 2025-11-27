@@ -19,6 +19,7 @@ import fs from 'fs';
 import { debug } from 'playwright-core/lib/utilsBundle';
 import { mkdirIfNeeded } from 'playwright-core/lib/utils';
 import { renderModalStates } from './tab';
+import { determineOutputFile } from './tools/utils';
 
 import type { Tab, TabSnapshot } from './tab';
 import type { CallToolResult, ImageContent, TextContent } from '@modelcontextprotocol/sdk/types.js';
@@ -34,7 +35,7 @@ export class Response {
   private _includeSnapshot: 'none' | 'full' | 'incremental' = 'none';
   private _includeTabs = false;
   private _tabSnapshot: TabSnapshot | undefined;
-  private _snapshotFile: string | undefined;
+  private _snapshotFile: boolean | string | undefined;
 
   readonly toolName: string;
   readonly toolArgs: Record<string, any>;
@@ -83,8 +84,8 @@ export class Response {
     this._includeSnapshot = full ?? 'incremental';
   }
 
-  setSnapshotFile(filename: string | undefined) {
-    this._snapshotFile = filename;
+  setSnapshotFile(snapshotFile: boolean | string | undefined) {
+    this._snapshotFile = snapshotFile;
   }
 
   setIncludeTabs() {
@@ -117,19 +118,22 @@ export class Response {
   }
 
   async serialize(options: { omitSnapshot?: boolean, omitBlobs?: boolean } = {}): Promise<{ content: (TextContent | ImageContent)[], isError?: boolean }> {
-    // Handle snapshot file saving first, before building the response
-    if (this._tabSnapshot && this._snapshotFile !== undefined) {
-      const fileName = await this._context.outputFile(this._snapshotFile || `snapshot-${Date.now()}.yaml`, { origin: 'llm', reason: 'Saving page snapshot' });
+    // Determine if we should save snapshot to file
+    let savedToFile = false;
+    if (this._tabSnapshot && this._snapshotFile !== false) {
       const snapshotContent = renderTabSnapshot(this._tabSnapshot, 'full');
-
-      await mkdirIfNeeded(fileName);
-      await fs.promises.writeFile(fileName, snapshotContent, 'utf-8');
-
-      // Add result message
-      this._result.push(`Page snapshot saved to ${fileName}`);
-      this._result.push(`File size: ${Buffer.byteLength(snapshotContent, 'utf-8')} bytes`);
-      this._result.push(`Page URL: ${this._tabSnapshot.url}`);
-      this._result.push(`Page Title: ${this._tabSnapshot.title}`);
+      const snapshotSize = Buffer.byteLength(snapshotContent, 'utf-8');
+      const snapshotFile = determineOutputFile(this._snapshotFile, snapshotSize, 'snapshot');
+      if (snapshotFile) {
+        const fileName = await this._context.outputFile(snapshotFile, { origin: 'llm', reason: 'Saving page snapshot' });
+        await mkdirIfNeeded(fileName);
+        await fs.promises.writeFile(fileName, snapshotContent, 'utf-8');
+        this._result.push(`Page snapshot saved to ${fileName}`);
+        this._result.push(`File size: ${snapshotSize} bytes`);
+        this._result.push(`Page URL: ${this._tabSnapshot.url}`);
+        this._result.push(`Page Title: ${this._tabSnapshot.title}`);
+        savedToFile = true;
+      }
     }
 
     const response: string[] = [];
@@ -158,8 +162,8 @@ ${this._code.join('\n')}
     if (this._tabSnapshot?.modalStates.length) {
       response.push(...renderModalStates(this._context, this._tabSnapshot.modalStates));
       response.push('');
-    } else if (this._tabSnapshot && this._snapshotFile === undefined) {
-      // Only render inline if not saving to file
+    } else if (this._tabSnapshot && !savedToFile) {
+      // Only render inline if not saved to file
       const includeSnapshot = options.omitSnapshot ? 'none' : this._includeSnapshot;
       response.push(renderTabSnapshot(this._tabSnapshot, includeSnapshot));
       response.push('');

@@ -20,7 +20,7 @@ import { mkdirIfNeeded } from 'playwright-core/lib/utils';
 
 import { z } from '../../sdk/bundle';
 import { defineTabTool } from './tool';
-import { dateAsFileName } from './utils';
+import { determineOutputFile } from './utils';
 
 import type * as playwright from 'playwright-core';
 import type { Request } from '../../../../../playwright-core/src/client/network';
@@ -96,30 +96,23 @@ const requests = defineTabTool({
     const avgDuration = requestCount > 0 ? Math.round(totalDuration / requestCount) : 0;
     const summary = `Network Summary: ${totalRequests} requests, ${failedCount} failed, average ${avgDuration}ms`;
 
-    if (params.filename !== undefined) {
-      // Save to file
-      const fileName = await tab.context.outputFile(params.filename || dateAsFileName('txt', 'network'), { origin: 'llm', reason: 'Saving network requests' });
-      const lines: string[] = [];
+    // Build content
+    const lines: string[] = [summary, ''];
+    for (const request of filteredRequests)
+      lines.push(await renderRequest(request));
+    const content = lines.join('\n');
+    const contentSize = Buffer.byteLength(content, 'utf-8');
 
-      // Add summary at the top
-      lines.push(summary);
-      lines.push('');
-
-      for (const request of filteredRequests)
-        lines.push(await renderRequest(request));
-
-      const content = lines.join('\n');
-
+    const outputFile = determineOutputFile(params.filename, contentSize, 'network', 'txt');
+    if (outputFile) {
+      const fileName = await tab.context.outputFile(outputFile, { origin: 'llm', reason: 'Saving network requests' });
       await mkdirIfNeeded(fileName);
       await fs.promises.writeFile(fileName, content, 'utf-8');
-
       response.addResult(`${summary}\nSaved ${filteredRequests.length} network requests to ${fileName}`);
-      response.addResult(`File size: ${Buffer.byteLength(content, 'utf-8')} bytes`);
+      response.addResult(`File size: ${contentSize} bytes`);
     } else {
-      // Return inline (original behavior)
-      response.addResult(summary);
-      for (const request of filteredRequests)
-        response.addResult(await renderRequest(request));
+      for (const line of lines)
+        response.addResult(line);
     }
   },
 });

@@ -83,11 +83,48 @@ test('browser_snapshot with snapshotFile', async ({ startClient, server }, testI
   expect(content).toContain('Hello, world!');
 });
 
-test('browser_navigate without snapshotFile saves to file by default', async ({ startClient, server }) => {
-  // Temporarily unset the test env var to test our fork's default file-saving behavior
-  const prevEnv = process.env.PW_MCP_SNAPSHOT_INLINE;
-  delete process.env.PW_MCP_SNAPSHOT_INLINE;
+test('browser_navigate without snapshotFile saves to file by default when large', async ({ startClient, server }) => {
+  // Set threshold to 1KB to test file-saving behavior
+  const prevThreshold = process.env.PW_MCP_SIZE_THRESHOLD;
+  process.env.PW_MCP_SIZE_THRESHOLD = '1024';
   try {
+    // Generate a page with enough content to exceed 1KB threshold
+    const items = Array.from({ length: 50 }, (_, i) =>
+      `<li id="item-${i}">Item ${i}: ${'x'.repeat(30)}</li>`).join('\n');
+    server.setContent('/large', `
+      <!DOCTYPE html>
+      <html><body>
+        <h1>Large Page</h1>
+        <ul>${items}</ul>
+      </body></html>
+    `, 'text/html');
+
+    const { client } = await startClient();
+    const response = parseResponse(await client.callTool({
+      name: 'browser_navigate',
+      arguments: {
+        url: `${server.PREFIX}/large`,
+      },
+    }));
+
+    // Should save to file when content > 1KB threshold
+    expect(response.result).toContain('Page snapshot saved to');
+    expect(response.result).toContain('.yaml');
+    expect(response.pageState).toBeFalsy();
+  } finally {
+    if (prevThreshold !== undefined)
+      process.env.PW_MCP_SIZE_THRESHOLD = prevThreshold;
+    else
+      delete process.env.PW_MCP_SIZE_THRESHOLD;
+  }
+});
+
+test('browser_navigate inlines small snapshot by default', async ({ startClient, server }) => {
+  // Set threshold to 1KB to test inline behavior for small content
+  const prevThreshold = process.env.PW_MCP_SIZE_THRESHOLD;
+  process.env.PW_MCP_SIZE_THRESHOLD = '1024';
+  try {
+    // Small page (< 1KB threshold) should be inlined, not saved to file
     const { client } = await startClient();
     const response = parseResponse(await client.callTool({
       name: 'browser_navigate',
@@ -96,13 +133,16 @@ test('browser_navigate without snapshotFile saves to file by default', async ({ 
       },
     }));
 
-    // Should always save to file now (our fork's default behavior)
-    expect(response.result).toContain('Page snapshot saved to');
-    expect(response.result).toContain('.yaml');
-    expect(response.pageState).toBeFalsy();
+    // Small content should be inlined
+    expect(response.pageState).toBeTruthy();
+    expect(response.pageState).toContain('Hello, world!');
+    // Should not save to file
+    expect(response.result).toBeFalsy();
   } finally {
-    if (prevEnv !== undefined)
-      process.env.PW_MCP_SNAPSHOT_INLINE = prevEnv;
+    if (prevThreshold !== undefined)
+      process.env.PW_MCP_SIZE_THRESHOLD = prevThreshold;
+    else
+      delete process.env.PW_MCP_SIZE_THRESHOLD;
   }
 });
 

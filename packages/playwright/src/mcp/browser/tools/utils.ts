@@ -105,18 +105,28 @@ export function dateAsFileName(extension: string, prefix: string = 'page'): stri
   return `${prefix}-${date.toISOString().replace(/[:.]/g, '-')}.${extension}`;
 }
 
+// Shared threshold for auto-saving to file (default 1KB, configurable via env var)
+export const SIZE_THRESHOLD = parseInt(process.env.PW_MCP_SIZE_THRESHOLD || '1024', 10);
+
 /**
- * Determines if snapshot should be saved to file.
- * Uses environment variable PW_MCP_SNAPSHOT_INLINE as default when snapshotFile is undefined.
- * - snapshotFile === false: return false (inline)
- * - snapshotFile === true or string: return true (save to file)
- * - snapshotFile === undefined: check env var, if PW_MCP_SNAPSHOT_INLINE=1 return false, otherwise return true
+ * Determines the output filename based on option and content size.
+ * Returns filename string if should save to file, undefined if should inline.
+ * - filenameOption === false: return undefined (force inline)
+ * - filenameOption === string: return that string (custom filename)
+ * - filenameOption === true: return generated filename (force file)
+ * - filenameOption === undefined: return generated filename if size > threshold, else undefined (auto mode)
  */
-export function shouldSaveSnapshotToFile(snapshotFile: boolean | string | undefined): boolean {
-  if (snapshotFile === false)
-    return false;
-  if (snapshotFile === true || typeof snapshotFile === 'string')
-    return true;
-  // When undefined, check env var for default behavior
-  return process.env.PW_MCP_SNAPSHOT_INLINE !== '1';
+export function determineOutputFile(
+  filenameOption: boolean | string | undefined,
+  contentSize: number,
+  prefix: string,
+  extension: string = 'yaml'
+): string | undefined {
+  if (filenameOption === false)
+    return undefined;
+  if (typeof filenameOption === 'string')
+    return filenameOption || dateAsFileName(extension, prefix); // Empty string = use default
+  if (filenameOption === true || contentSize > SIZE_THRESHOLD)
+    return dateAsFileName(extension, prefix);
+  return undefined;
 }

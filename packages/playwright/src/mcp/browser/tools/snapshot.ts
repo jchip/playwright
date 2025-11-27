@@ -16,8 +16,6 @@
 
 import { z } from '../../sdk/bundle';
 import { defineTabTool, defineTool } from './tool';
-import { dateAsFileName } from './utils';
-import { shouldSaveSnapshotToFile } from './utils';
 import * as javascript from '../codegen';
 
 const snapshot = defineTool({
@@ -35,11 +33,7 @@ const snapshot = defineTool({
   handle: async (context, params, response) => {
     await context.ensureTab();
     response.setIncludeSnapshot('full');
-    // Handle snapshotFile parameter: false = inline, true/string/undefined = file (respects PW_MCP_SNAPSHOT_INLINE env)
-    if (shouldSaveSnapshotToFile(params.snapshotFile)) {
-      const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'snapshot');
-      response.setSnapshotFile(filename);
-    }
+    response.setSnapshotFile(params.snapshotFile);
   },
 });
 
@@ -70,10 +64,7 @@ const click = defineTabTool({
 
   handle: async (tab, params, response) => {
     response.setIncludeSnapshot();
-    if (shouldSaveSnapshotToFile(params.snapshotFile)) {
-      const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'click');
-      response.setSnapshotFile(filename);
-    }
+    response.setSnapshotFile(params.snapshotFile);
 
     const { locator, resolved } = await tab.refLocator(params);
     const options = {
@@ -114,10 +105,7 @@ const drag = defineTabTool({
 
   handle: async (tab, params, response) => {
     response.setIncludeSnapshot();
-    if (shouldSaveSnapshotToFile(params.snapshotFile)) {
-      const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'drag');
-      response.setSnapshotFile(filename);
-    }
+    response.setSnapshotFile(params.snapshotFile);
 
     const [start, end] = await tab.refLocators([
       { ref: params.startRef, element: params.startElement },
@@ -144,10 +132,7 @@ const hover = defineTabTool({
 
   handle: async (tab, params, response) => {
     response.setIncludeSnapshot();
-    if (shouldSaveSnapshotToFile(params.snapshotFile)) {
-      const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'hover');
-      response.setSnapshotFile(filename);
-    }
+    response.setSnapshotFile(params.snapshotFile);
 
     const { locator, resolved } = await tab.refLocator(params);
     response.addCode(`await page.${resolved}.hover();`);
@@ -174,10 +159,7 @@ const selectOption = defineTabTool({
 
   handle: async (tab, params, response) => {
     response.setIncludeSnapshot();
-    if (shouldSaveSnapshotToFile(params.snapshotFile)) {
-      const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'select');
-      response.setSnapshotFile(filename);
-    }
+    response.setSnapshotFile(params.snapshotFile);
 
     const { locator, resolved } = await tab.refLocator(params);
     response.addCode(`await page.${resolved}.selectOption(${javascript.formatObject(params.values)});`);

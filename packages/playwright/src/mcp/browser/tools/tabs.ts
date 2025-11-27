@@ -17,8 +17,6 @@
 import { z } from '../../sdk/bundle';
 import { defineTool } from './tool';
 import { snapshotFileSchema } from './snapshot';
-import { dateAsFileName } from './utils';
-import { shouldSaveSnapshotToFile } from './utils';
 
 const browserTabs = defineTool({
   capability: 'core-tabs',
@@ -49,10 +47,7 @@ const browserTabs = defineTool({
       case 'close': {
         await context.closeTab(params.index);
         response.setIncludeSnapshot('full');
-        if (shouldSaveSnapshotToFile(params.snapshotFile)) {
-          const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'tabs');
-          response.setSnapshotFile(filename);
-        }
+        response.setSnapshotFile(params.snapshotFile);
         return;
       }
       case 'select': {
@@ -60,10 +55,7 @@ const browserTabs = defineTool({
           throw new Error('Tab index is required');
         await context.selectTab(params.index);
         response.setIncludeSnapshot('full');
-        if (shouldSaveSnapshotToFile(params.snapshotFile)) {
-          const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'tabs');
-          response.setSnapshotFile(filename);
-        }
+        response.setSnapshotFile(params.snapshotFile);
         return;
       }
     }

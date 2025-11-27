@@ -21,8 +21,7 @@ import { mkdirIfNeeded } from 'playwright-core/lib/utils';
 import { z } from '../../sdk/bundle';
 import { defineTabTool } from './tool';
 import * as javascript from '../codegen';
-import { dateAsFileName } from './utils';
-import { shouldSaveSnapshotToFile } from './utils';
+import { determineOutputFile } from './utils';
 import { snapshotFileSchema } from './snapshot';
 
 import type { Tab } from '../tab';
@@ -46,10 +45,7 @@ const evaluate = defineTabTool({
 
   handle: async (tab, params, response) => {
     response.setIncludeSnapshot();
-    if (shouldSaveSnapshotToFile(params.snapshotFile)) {
-      const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'evaluate');
-      response.setSnapshotFile(filename);
-    }
+    response.setSnapshotFile(params.snapshotFile);
 
     let locator: Awaited<ReturnType<Tab['refLocator']>> | undefined;
     if (params.ref && params.element) {
@@ -63,18 +59,16 @@ const evaluate = defineTabTool({
       const receiver = locator?.locator ?? tab.page;
       const result = await receiver._evaluateFunction(params.function);
       const resultString = JSON.stringify(result, null, 2) || 'undefined';
+      const resultSize = Buffer.byteLength(resultString, 'utf-8');
 
-      if (params.filename !== undefined) {
-        // Save to file
-        const fileName = await tab.context.outputFile(params.filename || dateAsFileName('json', 'evaluate'), { origin: 'llm', reason: 'Saving evaluation result' });
-
+      const outputFile = determineOutputFile(params.filename, resultSize, 'evaluate', 'json');
+      if (outputFile) {
+        const fileName = await tab.context.outputFile(outputFile, { origin: 'llm', reason: 'Saving evaluation result' });
         await mkdirIfNeeded(fileName);
         await fs.promises.writeFile(fileName, resultString, 'utf-8');
-
         response.addResult(`Evaluation result saved to ${fileName}`);
-        response.addResult(`File size: ${Buffer.byteLength(resultString, 'utf-8')} bytes`);
+        response.addResult(`File size: ${resultSize} bytes`);
       } else {
-        // Return inline (original behavior)
         response.addResult(resultString);
       }
     });

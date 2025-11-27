@@ -17,8 +17,6 @@
 import { z } from '../../sdk/bundle';
 import { defineTabTool } from './tool';
 import { snapshotFileSchema } from './snapshot';
-import { dateAsFileName } from './utils';
-import { shouldSaveSnapshotToFile } from './utils';
 
 const elementSchema = z.object({
   element: z.string().optional().describe('Human-readable element description (optional, for logging)'),
@@ -62,10 +60,7 @@ const mouseClick = defineTabTool({
 
   handle: async (tab, params, response) => {
     response.setIncludeSnapshot();
-    if (shouldSaveSnapshotToFile(params.snapshotFile)) {
-      const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'mouseclick');
-      response.setSnapshotFile(filename);
-    }
+    response.setSnapshotFile(params.snapshotFile);
 
     response.addCode(`// Click mouse at coordinates (${params.x}, ${params.y})`);
     response.addCode(`await page.mouse.move(${params.x}, ${params.y});`);
@@ -97,10 +92,7 @@ const mouseDrag = defineTabTool({
 
   handle: async (tab, params, response) => {
     response.setIncludeSnapshot();
-    if (shouldSaveSnapshotToFile(params.snapshotFile)) {
-      const filename = typeof params.snapshotFile === 'string' ? params.snapshotFile : dateAsFileName('yaml', 'mousedrag');
-      response.setSnapshotFile(filename);
-    }
+    response.setSnapshotFile(params.snapshotFile);
 
     response.addCode(`// Drag mouse from (${params.startX}, ${params.startY}) to (${params.endX}, ${params.endY})`);
     response.addCode(`await page.mouse.move(${params.startX}, ${params.startY});`);
