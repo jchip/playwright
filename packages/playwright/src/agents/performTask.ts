@@ -23,21 +23,22 @@ import { Loop } from '../mcp/sdk/bundle';
 import { wrapInClient } from '../mcp/sdk/server';
 
 import type * as playwright from 'playwright-core';
-import type { CallToolResult } from '@modelcontextprotocol/sdk/types';
+import type * as tinyLoop from 'tiny-loop';
 
 export async function performTask(context: playwright.BrowserContext, task: string) {
   const backend = new BrowserServerBackend(defaultConfig, identityBrowserContextFactory(context));
   const client = await wrapInClient(backend, { name: 'Internal', version: '0.0.0' });
   const loop = new Loop('copilot');
 
-  const callTool: (params: { name: string, arguments: any}) => Promise<CallToolResult> = async params => {
-    return await client.callTool(params) as CallToolResult;
+  const callTool: (params: { name: string, arguments: any}) => Promise<tinyLoop.ToolResult> = async params => {
+    return await client.callTool(params) as tinyLoop.ToolResult;
   };
 
   try {
     return await loop.run(task, {
-      tools: await backend.listTools(),
-      callTool,
+      // TODO: fix types in tiny-loop
+      tools: await backend.listTools() as any,
+      callTool: callTool as any,
       logger,
     });
   } finally {
